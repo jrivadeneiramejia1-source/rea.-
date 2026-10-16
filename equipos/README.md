@@ -74,7 +74,7 @@ Usa el archivo `lanzador-equipos.zip` (se arma con `npm run build && node empaqu
 
     → **Deploy**.
 11. Firebase → **Authentication → Configuración (Settings) → Dominios autorizados → Agregar dominio** → `lanzador-jeiler.pages.dev`.
-12. Abre la app, crea tu cuenta y tu equipo. La primera vez salen avisos «Falta un índice de Firestore»: toca cada uno → **Guardar** y espera unos 5 minutos. Si prefieres crearlos a mano (Firestore → Índices → Compuesto):
+12. Abre la app, crea tu cuenta y tu equipo. Los índices de Firestore los crea el Worker solo la primera vez (tardan unos minutos en estar listos); mientras tanto la app funciona igual, sin avisos. Si en Firestore → Índices no aparecen después de 10 minutos, créalos a mano (Compuesto):
 
     | Colección | Campo 1 | Campo 2 |
     |---|---|---|
@@ -140,7 +140,8 @@ En iPhone las notificaciones solo funcionan con la app agregada a inicio (iOS 16
 ## Pruebas
 
 ```bash
-npm run test:worker      # Worker: firmas RSA reales, tokens falsos/vencidos/de otro proyecto, CORS, avisos
+npm run test:worker      # Worker: firmas RSA reales, tokens falsos/vencidos/de otro proyecto, CORS, avisos, índices
+node pruebas/consultas.test.mjs   # la app funciona aunque falten los índices
 npm run test:reglas      # 58 casos de reglas contra el emulador de Firestore (requiere Java 21)
 PLAYWRIGHT_MODULE=… npx firebase emulators:exec --only auth,firestore,hosting --project demo-equipos "node pruebas/e2e.mjs"
 ```

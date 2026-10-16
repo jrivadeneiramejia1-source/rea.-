@@ -193,6 +193,33 @@ async function sendToUsers(env, access, db, uids, note) {
 
 const clip = (s, n = MAX_TEXT) => { const t = String(s || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1) + "…" : t; };
 
+// ---------- Índices de Firestore ----------
+// Las listas por fecha necesitan estos índices compuestos. Se crean una sola vez por proyecto;
+// si ya existen, Firestore responde 409 y no pasa nada.
+export const INDEXES = [
+  ["messages", "to", "createdAt"],
+  ["messages", "from", "createdAt"],
+  ["requests", "team", "createdAt"],
+  ["community", "team", "publishedAt"],
+];
+let indexesReady = false;
+export async function handlePrepare(env) {
+  if (indexesReady || (env.EMULATOR === "1" && env.FIREBASE_PROJECT_ID.startsWith("demo-"))) return { listo: true };
+  const access = await getAccessToken(env);
+  const base = (env.FIRESTORE_BASE || "https://firestore.googleapis.com") + `/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/collectionGroups`;
+  const result = await Promise.all(INDEXES.map(async ([col, eq, by]) => {
+    const res = await env.fetch(`${base}/${col}/indexes`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${access}`, "content-type": "application/json" },
+      body: JSON.stringify({ queryScope: "COLLECTION", fields: [{ fieldPath: eq, order: "ASCENDING" }, { fieldPath: by, order: "DESCENDING" }] }),
+    }).catch(() => null);
+    const estado = !res ? "sin conexión" : res.ok ? "creando" : res.status === 409 ? "ya existe" : res.status === 403 ? "sin permiso" : "error " + res.status;
+    return { indice: `${col}: ${eq} ↑ ${by} ↓`, estado };
+  }));
+  indexesReady = result.every((r) => r.estado === "ya existe");
+  return { listo: indexesReady, indices: result };
+}
+
 export async function handleNotify(uid, body, env) {
   const access = await getAccessToken(env);
   const db = firestore(env, access);
@@ -262,7 +289,7 @@ export default {
 
     if (request.method === "OPTIONS") return new Response(null, { status: cors.ok ? 204 : 403, headers: cors.headers });
     if (url.pathname === "/" && request.method === "GET") return json(200, { ok: true, servicio: "notificaciones-equipos" });
-    if (url.pathname !== "/notify" || request.method !== "POST") return json(404, { error: "No encontrado" });
+    if (!["/notify", "/preparar"].includes(url.pathname) || request.method !== "POST") return json(404, { error: "No encontrado" });
     if (!cors.ok) return json(403, { error: "Origen no permitido" });
 
     try {
@@ -272,7 +299,7 @@ export default {
       if (text.length > 2000) throw new HttpError(413, "Petición muy grande");
       let body;
       try { body = JSON.parse(text || "{}"); } catch { throw new HttpError(400, "JSON inválido"); }
-      return json(200, await handleNotify(uid, body || {}, env));
+      return json(200, url.pathname === "/preparar" ? await handlePrepare(env) : await handleNotify(uid, body || {}, env));
     } catch (e) {
       const status = e instanceof HttpError ? e.status : 500;
       if (status === 500) console.error(e);
@@ -281,4 +308,4 @@ export default {
   },
 };
 
-export const _test = { reset() { jwksCache = { keys: null, until: 0 }; accessCache = { token: null, until: 0 }; } };
+export const _test = { reset() { jwksCache = { keys: null, until: 0 }; accessCache = { token: null, until: 0 }; indexesReady = false; } };

@@ -668,12 +668,7 @@
 
     // Suscripciones a Firestore.
     useEffect(() => {
-      const err = (what) => (e) => {
-        // Firestore avisa con un enlace cuando falta un índice: un toque lo crea en la consola.
-        const link = e.code === "failed-precondition" && /https:\/\/console\.firebase\.google\.com\S+/.exec(e.message || "");
-        if (link) toast("Falta un índice de Firestore para " + what + ". Toca aquí, pulsa «Guardar» y espera unos minutos.", { onOpen: () => window.open(link[0], "_blank", "noopener"), ms: 30000 });
-        else toast("Error al leer " + what + ": " + (e.code === "permission-denied" ? "sin permiso" : e.message));
-      };
+      const err = (what) => (e) => toast("Error al leer " + what + ": " + (e.code === "permission-denied" ? "sin permiso" : e.message));
       const subs = [
         E.watchMembers(profile.team, setMembers, err("el equipo")),
         E.watchOutbox(meUid, setOutbox, err("tus mensajes")),

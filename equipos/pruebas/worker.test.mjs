@@ -30,8 +30,8 @@ const enc$ = (v) => v === null ? { nullValue: null } : typeof v === "boolean" ? 
   : typeof v === "string" ? { stringValue: v } : Array.isArray(v) ? { arrayValue: { values: v.map(enc$) } } : { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc$(x)])) } };
 const fields = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, enc$(v)]));
 
-function fakeGoogle(docs, { fcmDead = [] } = {}) {
-  const log = { pushes: [], patches: [], tokenCalls: 0 };
+function fakeGoogle(docs, { fcmDead = [], indexes = new Set(), forbidIndexes = false } = {}) {
+  const log = { pushes: [], patches: [], tokenCalls: 0, indexCalls: 0 };
   const root = `projects/${PROJECT}/databases/(default)/documents`;
   const fetch = async (url, init = {}) => {
     const u = new URL(url);
@@ -53,6 +53,15 @@ function fakeGoogle(docs, { fcmDead = [] } = {}) {
       if (fcmDead.includes(msg.token)) return new Response(JSON.stringify({ error: { status: "NOT_FOUND", details: [{ errorCode: "UNREGISTERED" }] } }), { status: 404 });
       log.pushes.push(msg);
       return ok({ name: "projects/x/messages/1" });
+    }
+    if (u.pathname.includes("/collectionGroups/")) {
+      log.indexCalls++;
+      if (forbidIndexes) return new Response("{}", { status: 403 });
+      const f = JSON.parse(init.body).fields;
+      const key = decodeURIComponent(u.pathname).split("/collectionGroups/")[1].split("/")[0] + ":" + f.map((x) => x.fieldPath + x.order).join(",");
+      if (indexes.has(key)) return new Response("{}", { status: 409 });
+      indexes.add(key);
+      return ok({ name: "operations/1" });
     }
     const path = decodeURIComponent(u.pathname).split(`${root}`)[1] || "";
     if (path === ":batchGet") {
@@ -176,6 +185,35 @@ await check("reutiliza el token OAuth entre avisos", async () => {
     assert.equal(res.status, 200);
   }
   assert.equal(g.log.tokenCalls, 1);
+});
+
+console.log("Índices de Firestore");
+await check("crea los 4 índices la primera vez y luego responde «listo» sin llamar a Google", async () => {
+  const indexes = new Set();
+  const g = fakeGoogle(seed(), { indexes });
+  const env = { FIREBASE_PROJECT_ID: PROJECT, APP_URL: ORIGIN, ALLOWED_ORIGINS: ORIGIN, GOOGLE_SERVICE_ACCOUNT: saJson, fetch: g.fetch };
+  const prep = async () => (await worker.fetch(new Request("https://x/preparar", { method: "POST", headers: { origin: ORIGIN, authorization: `Bearer ${await idToken("amigo")}` }, body: "{}" }), env)).json();
+  const a = await prep();
+  assert.deepEqual(a.indices.map((i) => i.estado), ["creando", "creando", "creando", "creando"]);
+  assert.ok(indexes.has("messages:toASCENDING,createdAtDESCENDING") && indexes.has("community:teamASCENDING,publishedAtDESCENDING"));
+  const b = await prep();
+  assert.equal(b.listo, true);
+  const calls = g.log.indexCalls;
+  assert.deepEqual(await prep(), { listo: true });
+  assert.equal(g.log.indexCalls, calls, "ya listos: no vuelve a llamar a Google");
+});
+await check("sin permiso para crear índices lo informa sin romper nada", async () => {
+  const g = fakeGoogle(seed(), { forbidIndexes: true });
+  const env = { FIREBASE_PROJECT_ID: PROJECT, APP_URL: ORIGIN, ALLOWED_ORIGINS: ORIGIN, GOOGLE_SERVICE_ACCOUNT: saJson, fetch: g.fetch };
+  const res = await worker.fetch(new Request("https://x/preparar", { method: "POST", headers: { origin: ORIGIN, authorization: `Bearer ${await idToken("amigo")}` }, body: "{}" }), env);
+  assert.equal(res.status, 200);
+  assert.ok((await res.json()).indices.every((i) => i.estado === "sin permiso"));
+});
+await check("/preparar exige sesión", async () => {
+  const g = fakeGoogle(seed());
+  const env = { FIREBASE_PROJECT_ID: PROJECT, ALLOWED_ORIGINS: ORIGIN, GOOGLE_SERVICE_ACCOUNT: saJson, fetch: g.fetch };
+  const res = await worker.fetch(new Request("https://x/preparar", { method: "POST", headers: { origin: ORIGIN }, body: "{}" }), env);
+  assert.equal(res.status, 401); assert.equal(g.log.indexCalls, 0);
 });
 
 console.log(`\n${passed} comprobaciones OK`);

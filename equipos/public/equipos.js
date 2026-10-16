@@ -206,14 +206,34 @@
     });
     return { id: ref.id, pushed: await committed(write, () => notify({ messageId: ref.id })) };
   }
+  // Las listas ordenadas por fecha necesitan un índice compuesto de Firestore. Si todavía no existe
+  // (proyecto nuevo o índice construyéndose), se escucha la misma consulta sin orden y se ordena aquí,
+  // y se le pide al Worker que cree los índices. Así nadie ve errores ni tiene que entrar a la consola.
+  function watchOrdered(base, field, max, map, fn, err) {
+    let unsub = null, stopped = false, current = 0;
+    const emit = (s) => {
+      const all = s.docs.map(map).filter(Boolean).sort((a, b) => b.at - a.at).slice(0, max);
+      const keep = new Set(all.map((x) => x.id));
+      fn(all, s.docChanges().filter((c) => c.type === "added").map((c) => map(c.doc)).filter((x) => x && keep.has(x.id)));
+    };
+    const start = (fallback) => {
+      const gen = ++current;
+      const u = (fallback ? base : base.orderBy(field, "desc").limit(max)).onSnapshot(emit, (e) => {
+        if (!fallback && e && e.code === "failed-precondition") { prepareIndexes(); if (!stopped) start(true); }
+        else if (err) err(e);
+      });
+      // Si el error llegó antes de que onSnapshot devolviera, ya se abrió la consulta simple: esta se cierra.
+      if (gen === current) unsub = u; else u();
+    };
+    start(false);
+    return () => { stopped = true; if (unsub) unsub(); };
+  }
+  let preparing = null;
+  const prepareIndexes = () => (preparing = preparing || callWorker("/preparar", {}));
+
   const LIMIT = 300;
-  function watchInbox(uid, fn, err) {
-    return messages().where("to", "==", uid).orderBy("createdAt", "desc").limit(LIMIT)
-      .onSnapshot({ includeMetadataChanges: false }, (s) => fn(s.docs.map(msgFromDoc), s.docChanges().filter((c) => c.type === "added").map((c) => msgFromDoc(c.doc))), err);
-  }
-  function watchOutbox(uid, fn, err) {
-    return messages().where("from", "==", uid).orderBy("createdAt", "desc").limit(LIMIT).onSnapshot((s) => fn(s.docs.map(msgFromDoc)), err);
-  }
+  const watchInbox = (uid, fn, err) => watchOrdered(messages().where("to", "==", uid), "createdAt", LIMIT, msgFromDoc, fn, err);
+  const watchOutbox = (uid, fn, err) => watchOrdered(messages().where("from", "==", uid), "createdAt", LIMIT, msgFromDoc, (all) => fn(all), err);
   function msgFromDoc(d) {
     const m = Object.assign({ id: d.id }, d.data({ serverTimestamps: "estimate" }));
     m.at = millis(m.createdAt) || Date.now();
@@ -234,10 +254,7 @@
     const write = ref.set({ from: me().uid, team: profile.team, text: String(text).trim().slice(0, 300), lang: "", category: String(category || "").slice(0, 40), createdAt: FV().serverTimestamp(), status: "abierto" });
     return { id: ref.id, pushed: await committed(write, () => notify({ requestId: ref.id })) };
   }
-  function watchRequests(team, fn, err) {
-    return db.collection("requests").where("team", "==", team).orderBy("createdAt", "desc").limit(60)
-      .onSnapshot((s) => fn(s.docs.map(msgFromDoc), s.docChanges().filter((c) => c.type === "added").map((c) => msgFromDoc(c.doc))), err);
-  }
+  const watchRequests = (team, fn, err) => watchOrdered(db.collection("requests").where("team", "==", team), "createdAt", 60, msgFromDoc, fn, err);
   const setRequestStatus = (id, status) => db.collection("requests").doc(id).update({ status: status });
   const deleteRequest = (id) => db.collection("requests").doc(id).delete();
 
@@ -264,14 +281,12 @@
   const communityId = (sid) => me().uid + "_" + sid;
   const publish = (profile, s) => db.collection("community").doc(communityId(s.id)).set({ owner: me().uid, team: profile.team, script: cleanForSend(s), publishedAt: FV().serverTimestamp() });
   const unpublish = (sid) => db.collection("community").doc(communityId(sid)).delete();
-  function watchCommunity(team, fn, err) {
-    return db.collection("community").where("team", "==", team).orderBy("publishedAt", "desc").limit(200)
-      .onSnapshot((s) => fn(s.docs.map((d) => {
-        const x = d.data({ serverTimestamps: "estimate" });
-        const script = G.sanitizeScript(x.script);
-        return script ? { id: d.id, owner: x.owner, at: millis(x.publishedAt), script: script } : null;
-      }).filter(Boolean)), err);
+  function communityFromDoc(d) {
+    const x = d.data({ serverTimestamps: "estimate" });
+    const script = G.sanitizeScript(x.script);
+    return script ? { id: d.id, owner: x.owner, at: millis(x.publishedAt) || Date.now(), script: script } : null;
   }
+  const watchCommunity = (team, fn, err) => watchOrdered(db.collection("community").where("team", "==", team), "publishedAt", 200, communityFromDoc, (all) => fn(all), err);
 
   // ---------- Notificaciones push ----------
   const pushSupported = () => "Notification" in root && "serviceWorker" in navigator && "PushManager" in root;
@@ -323,11 +338,12 @@
   async function removeThisDevice() { const t = thisToken(); if (t && me()) await removeDevice(t); }
 
   // Pide al Worker que mande el aviso. Si falla, el mensaje igual quedó enviado (lo verá al abrir la app).
-  async function notify(body) {
+  const notify = (body) => callWorker("/notify", body);
+  async function callWorker(path, body) {
     if (!cfg.notifyUrl) return { ok: false, reason: "sin-configurar" };
     try {
       const token = await me().getIdToken();
-      const r = await fetch(cfg.notifyUrl.replace(/\/+$/, "") + "/notify", { method: "POST", headers: { authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(body) });
+      const r = await fetch(cfg.notifyUrl.replace(/\/+$/, "") + path, { method: "POST", headers: { authorization: "Bearer " + token, "content-type": "application/json" }, body: JSON.stringify(body) });
       const data = await r.json().catch(() => ({}));
       return r.ok ? Object.assign({ ok: true }, data) : { ok: false, reason: data.error || "HTTP " + r.status };
     } catch (e) {
@@ -353,7 +369,7 @@
     sendMessage, watchInbox, watchOutbox, markRead, deleteMessage,
     createRequest, watchRequests, setRequestStatus, deleteRequest,
     watchLibrary, saveScript, deleteScript, saveCopy,
-    publish, unpublish, watchCommunity,
+    publish, unpublish, watchCommunity, watchOrdered,
     pushSupported, pushReady, isIOS, isStandalone, enablePush, watchDevices, removeDevice, thisToken, testPush, localNotify, deviceLabel,
   };
   root.Equipos = api;
