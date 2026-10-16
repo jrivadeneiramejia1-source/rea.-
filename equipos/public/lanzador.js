@@ -540,14 +540,14 @@
     const [cat, setCat] = useState("");
     const fileRef = useRef(null);
     const mine = useMemo(() => G.search(library, q, { category: cat }), [library, q, cat]);
+    // Todo lo publicado (tuyo y de los demás), del más viejo al más nuevo, como un chat de grupo.
     const team = useMemo(() => {
-      const list = community.filter((c) => c.owner !== meUid);
-      const found = new Set(G.search(list.map((c) => Object.assign({}, c.script, { id: c.id })), q, { category: cat }).map((s) => s.id));
-      return list.filter((c) => found.has(c.id));
-    }, [community, q, cat, meUid]);
+      const found = new Set(G.search(community.map((c) => Object.assign({}, c.script, { id: c.id })), q, { category: cat }).map((s) => s.id));
+      return community.filter((c) => found.has(c.id)).sort((a, b) => a.at - b.at);
+    }, [community, q, cat]);
     const who = (uid) => members.find((m) => m.uid === uid) || { uid: uid, name: "Ex miembro" };
     return html`<div className="space-y-3">
-      <div className="flex gap-1 bg-panel border border-line rounded-xl p-1">${[["mios", "Mis scripts (" + library.length + ")"], ["equipo", "Del equipo (" + community.filter((c) => c.owner !== meUid).length + ")"]].map(([k, l]) => html`<button key=${k} type="button" onClick=${() => setSeg(k)} className=${cx("flex-1 text-sm rounded-lg py-1.5", seg === k ? "bg-raised text-ink" : "text-mute")}>${l}</button>`)}</div>
+      <div className="flex gap-1 bg-panel border border-line rounded-xl p-1">${[["mios", "Mis scripts (" + library.length + ")"], ["equipo", "Del equipo (" + community.length + ")"]].map(([k, l]) => html`<button key=${k} type="button" onClick=${() => setSeg(k)} className=${cx("flex-1 text-sm rounded-lg py-1.5", seg === k ? "bg-raised text-ink" : "text-mute")}>${l}</button>`)}</div>
       <div className="flex gap-2"><div className="relative flex-1"><${Icon} name="Search" size=${16} className="absolute left-3 top-2.5 text-faint" /><input className=${cx(inputCls, "pl-9")} placeholder="Buscar (tolera errores: «resolucon»)" value=${q} onInput=${(e) => setQ(e.target.value)} /></div>
         ${seg === "mios" && html`<${Btn} kind="primary" onClick=${actions.newScript} aria-label="Nuevo script"><${Icon} name="Plus" /><//>
           <${Btn} onClick=${() => fileRef.current.click()} aria-label="Importar archivo"><${Icon} name="Upload" /><//>
@@ -559,10 +559,57 @@
             <span className="min-w-0 flex-1"><span className="block font-medium truncate">${s.name}</span><span className="block text-xs text-mute truncate">${s.category}${publishedIds.has(s.id) ? " · publicado al equipo" : ""}${s.origin ? " · de " + who(s.origin.authorId).name : ""}</span></span>
             <span className=${cx("text-xs", rep.score >= 80 ? "text-good" : rep.score >= 50 ? "text-warn" : "text-bad")}>${rep.score}</span><${LangBadge} lang=${s.lang} /></button>`; })
           : html`<${Empty} icon="FileCode" title="Sin scripts">Crea uno con + o importa .ps1, .bat, .py o .sh.<//>`)
-        : (team.length ? team.map((c) => html`<button key=${c.id} type="button" onClick=${() => onOpenCommunity(c)} className="w-full flex items-center gap-3 p-3 bg-panel border border-line rounded-2xl text-left hover:border-faint">
-            <${Avatar} person=${who(c.owner)} size=${32} />
-            <span className="min-w-0 flex-1"><span className="block font-medium truncate">${c.script.name}</span><span className="block text-xs text-mute truncate">${who(c.owner).name} · ${c.script.category}</span></span><${LangBadge} lang=${c.script.lang} /></button>`)
-          : html`<${Empty} icon="Users" title="Nadie ha publicado todavía">Cuando alguien publique un script al equipo aparecerá aquí. También puedes pedirlo en la pestaña Equipo.<//>`)}
+        : html`<${TeamFeed} items=${team} filtered=${!!(q || cat)} library=${library} members=${members} meUid=${meUid} onOpenCommunity=${onOpenCommunity} actions=${actions} />`}
+    </div>`;
+  }
+
+  // Scripts publicados al equipo como un grupo de WhatsApp: lo tuyo a la derecha, lo de los demás a la izquierda con su nombre.
+  const dayLabel = (ms) => {
+    const d = new Date(ms), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+    if (d.toDateString() === now.toDateString()) return "Hoy";
+    if (d.toDateString() === y.toDateString()) return "Ayer";
+    return d.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
+  };
+  function TeamFeed({ items, filtered, library, members, meUid, onOpenCommunity, actions }) {
+    const endRef = useRef(null);
+    useEffect(() => { if (!filtered && endRef.current) endRef.current.scrollIntoView({ block: "end" }); }, [items.length, filtered]);
+    const who = (uid) => members.find((m) => m.uid === uid) || { uid: uid, name: "Ex miembro" };
+    const saved = useMemo(() => new Set(library.filter((s) => s.origin).map((s) => s.origin.authorId + "/" + s.origin.scriptId)), [library]);
+    let lastDay = "", lastOwner = "";
+    return html`<div className="space-y-2">
+      ${items.length ? items.map((c) => {
+        const mine = c.owner === meUid, p = who(c.owner), s = c.script;
+        const day = dayLabel(c.at || Date.now());
+        const sep = day !== lastDay;
+        const showName = !mine && (sep || lastOwner !== c.owner);
+        lastDay = day; lastOwner = c.owner;
+        const isSaved = saved.has(c.owner + "/" + s.id);
+        return html`<${React.Fragment} key=${c.id}>
+          ${sep && html`<div className="flex justify-center py-1"><span className="text-[11px] text-mute bg-panel border border-line rounded-full px-3 py-0.5 first-letter:uppercase">${day}</span></div>`}
+          <div className=${cx("flex items-end gap-2", mine && "justify-end")}>
+            ${!mine && (showName ? html`<${Avatar} person=${p} size=${30} />` : html`<span className="w-[30px] shrink-0"></span>`)}
+            <div className=${cx("max-w-[85%] rounded-2xl px-3 py-2 text-sm space-y-2", mine ? "bg-acc/15 border border-acc/30 rounded-br-md" : "bg-panel border border-line rounded-bl-md")}>
+              ${showName && html`<p className="text-xs font-semibold" style=${{ color: `hsl(${hue(p.uid || p.name)} 65% 65%)` }}>${p.name}</p>`}
+              <p className="flex items-center gap-1 text-xs text-mute"><${Icon} name="Megaphone" size=${12} />${mine ? "Publicaste al equipo" : "Publicó al equipo"}</p>
+              <div className="rounded-xl bg-canvas border border-line p-2 space-y-1">
+                <p className="flex items-center gap-2 font-medium"><${Icon} name="FileCode" className="text-acc shrink-0" /><span className="min-w-0">${s.name}</span><${LangBadge} lang=${s.lang} /></p>
+                <p className="text-xs text-faint">${s.category}</p>
+                ${s.notes && html`<p className="text-xs text-mute line-clamp-2">${s.notes}</p>`}
+                <div className="flex gap-2 pt-1 flex-wrap">
+                  <${Btn} className="text-xs py-1" onClick=${() => onOpenCommunity(c)}><${Icon} name="Eye" size=${14} />Ver<//>
+                  ${mine
+                    ? html`<${Btn} kind="ghost" className="text-xs py-1" onClick=${() => actions.unpublish(c)}><${Icon} name="Trash2" size=${14} />Quitar<//>`
+                    : html`<${Btn} kind=${isSaved ? "ghost" : "primary"} className="text-xs py-1" disabled=${isSaved} onClick=${() => actions.saveCopy(s, c.owner)}><${Icon} name=${isSaved ? "Check" : "Save"} size=${14} />${isSaved ? "Guardado" : "Guardar"}<//>
+                      <${Btn} kind="ghost" className="text-xs py-1" onClick=${() => actions.openChat(c.owner)}><${Icon} name="MessageCircle" size=${14} />Escribir<//>`}
+                </div>
+              </div>
+              <p className=${cx("text-[10px] text-faint", mine && "text-right")}>${timeLabel(c.at)}</p>
+            </div>
+          </div>
+        <//>`;
+      }) : html`<${Empty} icon="Users" title=${filtered ? "Sin resultados" : "Nadie ha publicado todavía"}>${filtered ? "Prueba otra palabra o quita el filtro." : "Publica tu primer script con el botón de abajo: todo el equipo lo verá aquí."}<//>`}
+      <div ref=${endRef}></div>
+      <${Btn} kind="primary" className="w-full" onClick=${actions.publishFromLibrary}><${Icon} name="Megaphone" />Publicar un script al equipo<//>
     </div>`;
   }
 
@@ -765,7 +812,12 @@
       } catch (e) { toast("No se pudo leer lo compartido."); }
     }
     const openInAdvisor = (p) => { try { localStorage.setItem("equipos.promptEntrante", JSON.stringify({ title: p.title, text: p.text, at: Date.now() })); } catch (e) { /* sin almacenamiento */ } location.href = "/asesor/?desde=equipos"; };
-    const actions = { send, pickScript, ask, saveCopy, copy: async (t) => toast((await copyText(t)) ? "Copiado." : "No se pudo copiar."), openInAdvisor, newRequest, answerRequest, askPerson, newScript, importFiles };
+    const unpublish = (c) => confirm("¿Quitar «" + c.script.name + "» del equipo?", "Deja de verse en «Del equipo». El script sigue en tu biblioteca.", "Quitar", async () => { await E.unpublish(c.script.id); toast("Quitado del equipo."); });
+    const publishFromLibrary = () => pickScript(async (s) => {
+      if (publishedIds.has(s.id)) { toast("«" + s.name + "» ya está publicado."); return; }
+      try { await E.publish(profile, s); toast("Publicado: el equipo lo ve en «Del equipo»."); } catch (e) { toast("No se pudo publicar: " + e.message); }
+    }, "¿Qué script publicas al equipo?");
+    const actions = { send, pickScript, ask, saveCopy, unpublish, publishFromLibrary, openChat, copy: async (t) => toast((await copyText(t)) ? "Copiado." : "No se pudo copiar."), openInAdvisor, newRequest, answerRequest, askPerson, newScript, importFiles };
 
     // ----- Datos derivados -----
     const convos = useMemo(() => {
@@ -827,7 +879,7 @@
         ${tab === "actividad" && html`<${ActivityTab} feed=${feed} members=${members} meUid=${meUid} now=${now} pushOn=${pushOn} onOpenChat=${openChat} onOpenRequest=${openRequest} onProfile=${() => push({ type: "profile" })} installEvt=${installEvt} onInstall=${async () => { installEvt.prompt(); await installEvt.userChoice.catch(() => null); setInstallEvt(null); }} />`}
         ${tab === "chats" && html`<${ChatsTab} convos=${convos} members=${members} meUid=${meUid} now=${now} onOpenChat=${openChat} />`}
         ${tab === "equipo" && team && html`<${TeamTab} team=${team} members=${members} meUid=${meUid} now=${now} requests=${requests} focusRequest=${focusRequest} onOpenChat=${openChat} actions=${actions} toast=${toast} />`}
-        ${tab === "scripts" && html`<${ScriptsTab} library=${library} community=${community} members=${members} meUid=${meUid} publishedIds=${publishedIds} onOpen=${(s) => openScript(s, null)} onOpenCommunity=${(c) => push({ type: "script", script: c.script, editable: false, from: who(c.owner) })} actions=${actions} />`}
+        ${tab === "scripts" && html`<${ScriptsTab} library=${library} community=${community} members=${members} meUid=${meUid} publishedIds=${publishedIds} onOpen=${(s) => openScript(s, null)} onOpenCommunity=${(c) => { const own = c.owner === meUid && library.find((x) => x.id === c.script.id); push(own ? { type: "script", script: own, editable: true } : { type: "script", script: c.script, editable: false, from: who(c.owner) }); }} actions=${actions} />`}
       </main>
       <nav className="fixed bottom-0 inset-x-0 z-20 bg-panel border-t border-line" style=${{ paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div className="max-w-3xl mx-auto grid grid-cols-4">${TABS.map(([k, ic, l, n]) => html`<button key=${k} type="button" onClick=${() => setTab(k)} className=${cx("relative flex flex-col items-center gap-0.5 py-2 text-xs", tab === k ? "text-acc" : "text-mute")} aria-current=${tab === k ? "page" : undefined}>

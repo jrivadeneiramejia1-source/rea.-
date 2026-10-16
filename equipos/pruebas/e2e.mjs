@@ -159,13 +159,30 @@ try {
   await B.screenshot({ path: new URL("5-compartir.png", SHOTS).pathname });
   step("menú Compartir con Bluetooth/WhatsApp, descarga, QR y envío al equipo");
 
+  console.log("Scripts publicados al equipo (como un grupo)");
+  await A.getByRole("button", { name: "Volver" }).click();
+  await A.getByRole("button", { name: "Scripts" }).click();
+  await A.getByRole("button", { name: /^Del equipo/ }).click();
+  await A.getByRole("button", { name: "Publicar un script al equipo" }).click();
+  await A.getByRole("dialog").getByText("Reparar servicio de audio (Audiosrv)").click();
+  await A.getByText("Publicaste al equipo").waitFor();
+  await A.screenshot({ path: new URL("7-grupo-jeiler.png", SHOTS).pathname });
+  step("Jeiler publica y su script sale a su lado («Publicaste al equipo»)");
+  await B.goto(APP + "/?vista=scripts");
+  await B.getByRole("button", { name: /^Del equipo/ }).click();
+  await B.getByText("Publicó al equipo").waitFor();
+  assert.ok(await B.locator("p.text-xs.font-semibold", { hasText: "Jeiler" }).count() >= 1, "sale el nombre de quien publicó");
+  await B.getByRole("button", { name: "Guardado", exact: true }).first().waitFor();
+  await B.screenshot({ path: new URL("8-grupo-amigo.png", SHOTS).pathname });
+  step("Amigo lo ve al otro lado con el nombre de Jeiler (y marca que ya lo guardó)");
+
   console.log("Asesor IA conectado al equipo");
   await B.goto(APP + "/asesor/");
   await B.getByRole("button", { name: "Enviar a un compañero" }).waitFor({ timeout: 20000 });
   await B.getByRole("button", { name: "Enviar a un compañero" }).click();
   await B.getByText("¿A quién le envías el prompt?").waitFor();
   await B.locator("button", { hasText: "Jeiler" }).last().click();
-  await A.getByText("Prompt del Asesor IA").waitFor(); // Jeiler tiene abierto el chat con Amigo: llega directo ahí, sin aviso flotante
+  await A.getByText("✨ Amigo Técnico te envió un prompt").waitFor(); // Jeiler está en Scripts: le sale el aviso flotante
   await A.screenshot({ path: new URL("6-prompt-recibido.png", SHOTS).pathname });
   const p3 = await waitFor(() => pushes.find((p) => p.webpush.notification.title.startsWith("✨")), "push del prompt");
   assert.equal(p3.token, "tok-jeiler");
