@@ -11,6 +11,17 @@ Te dice, antes de enviar un pedido a Claude, ChatGPT, Gemini o DeepSeek:
 
 Todo corre en tu dispositivo. No usa API ni gasta tokens.
 
+## Versión 3 (artifact)
+
+`artifact/asesor-ia.html` es la versión actual publicada en claude.ai. Es un solo archivo con React 18, Tailwind 3.4.17 y lucide-react desde CDN:
+
+- Motor local (`<script id="engine">`): detecta el tipo de tarea, hace de 1 a 3 preguntas (modo entrevista), arma el prompt en XML de Anthropic, CO-STAR o compacto, decide si agregar razonamiento paso a paso y lo evalúa de 0 a 100 (claridad, contexto, restricciones).
+- Memoria en `localStorage` (`asesor.v3`): historial, favoritos, plantillas, preferencias y perfil. Los favoritos con la respuesta que te gustó se usan como ejemplos (few-shot) en pedidos parecidos.
+- Voz: dictado continuo con texto parcial en vivo, modo conversación y lectura en voz alta. Dentro de claude.ai el micrófono está bloqueado para los artifacts; la lectura en voz alta sí funciona.
+- Exportar `.md` y `.json` (en claude.ai usa la capacidad `downloads`).
+
+La app web (`index.html`) y la extensión (`extension/`) siguen en la versión 2.
+
 ## Partes
 
 | Carpeta | Dónde corre |

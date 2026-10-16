@@ -1,0 +1,1766 @@
+<title>Asesor IA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Convierte una idea en un prompt profesional (XML de Anthropic, CO-STAR, cadena de pensamiento), lo evalúa de 0 a 100, te entrevista, aprende de ti y habla contigo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Diseño: un solo tema oscuro (pedido explícito). Columna central; la comparación Original/Mejorado se divide en dos desde 768 px. */
+:root {
+  color-scheme: dark;
+  --base: #0b1117; --panel: #111a22; --raised: #17232d; --line: #24343f;
+  --ink: #e4ebef; --mute: #93a4af; --faint: #61727d;
+  --acc: #f2a541; --acc-ink: #1b1205; --good: #4cc184; --warn: #f0b44c; --bad: #f07a62; --info: #6aa6ec;
+}
+html, body { margin: 0; background: var(--base); color: var(--ink); }
+body {
+  font: 15px/1.55 "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+#root { max-width: 64rem; margin: 0 auto; padding-block: 16px 48px; }
+.boot { color: var(--mute); padding: 32px 0; }
+textarea { resize: vertical; }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+::selection { background: rgba(242, 165, 65, .35); }
+.wave { display: inline-flex; align-items: center; gap: 3px; height: 22px; }
+.wave i { display: block; width: 3px; height: 6px; border-radius: 2px; background: currentColor; }
+.wave.on i { animation: wave 1s ease-in-out infinite; }
+.wave.on.loud i { animation-duration: .55s; }
+.wave i:nth-child(2) { animation-delay: .12s; } .wave i:nth-child(3) { animation-delay: .24s; }
+.wave i:nth-child(4) { animation-delay: .36s; } .wave i:nth-child(5) { animation-delay: .48s; }
+@keyframes wave { 0%, 100% { height: 5px; } 50% { height: 20px; } }
+.pulse { position: relative; }
+.pulse::after { content: ""; position: absolute; inset: -4px; border-radius: 9999px; border: 2px solid var(--bad); animation: ring 1.4s ease-out infinite; pointer-events: none; }
+@keyframes ring { from { transform: scale(.9); opacity: .9; } to { transform: scale(1.35); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .wave.on i, .pulse::after { animation: none; } .wave.on i { height: 14px; } }
+pre.prompt { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          canvas: "#0b1117", panel: "#111a22", raised: "#17232d", line: "#24343f",
+          ink: "#e4ebef", mute: "#93a4af", faint: "#61727d",
+          acc: { DEFAULT: "#f2a541", ink: "#1b1205" },
+          good: "#4cc184", warn: "#f0b44c", bad: "#f07a62", info: "#6aa6ec",
+        },
+        fontFamily: {
+          display: ['"Bricolage Grotesque"', '"Trebuchet MS"', "system-ui", "sans-serif"],
+          sans: ['"Atkinson Hyperlegible"', "system-ui", "-apple-system", '"Segoe UI"', "sans-serif"],
+          mono: ['"JetBrains Mono"', "ui-monospace", "Consolas", "monospace"],
+        },
+      },
+    },
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script>window.react = window.React; /* lucide-react UMD busca el global "react" */</script>
+<script src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
+
+<div id="root"><p class="boot">Cargando Asesor IA…</p></div>
+
+<script id="engine">
+/*
+ * ===================== MOTOR DEL ASESOR (sin interfaz) =====================
+ * Inspirado en:
+ *  - DSPy: "firma" idea → prompt, demostraciones (few-shot) tomadas de tus favoritos
+ *    y elección de configuración según lo que mejor te ha funcionado.
+ *  - Promptfoo: rúbrica de aserciones con peso; cada una pasa, falla o no aplica.
+ *  - LangChain: plantillas de prompt y selector de ejemplos por similitud.
+ *  - Anthropic: rol, etiquetas XML, datos separados de instrucciones, ejemplos y
+ *    razonamiento paso a paso con <thinking>/<answer>.
+ * Todo es local y determinista: no llama a ninguna IA ni gasta tokens.
+ */
+(function (root) {
+  "use strict";
+
+  // ---------- 1. Texto ----------
+  const fold = (s) => String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const padded = (s) => " " + fold(s).replace(/\s+/g, " ") + " ";
+  const wordsOnly = (s) => " " + fold(s).replace(/[^a-z0-9]+/g, " ").trim() + " ";
+  const countWords = (s) => (String(s || "").trim().match(/\S+/g) || []).length;
+  const clip = (s, n) => { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
+  const uniq = (a) => Array.from(new Set(a.filter(Boolean)));
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  // Español ≈ 1 token cada 3,3 caracteres; código ≈ 1 cada 2,8. Margen ±30 %.
+  function estimateTokens(text) {
+    const s = String(text || "");
+    if (!s.trim()) return 0;
+    const codeChars = (s.match(/[{}()\[\];=<>$|\\/`]/g) || []).length;
+    return Math.max(1, Math.round(s.length / (codeChars / s.length > 0.04 ? 2.8 : 3.3)));
+  }
+
+  const STOP = new Set(("para como cuando donde quiero necesito hazme crea dame este esta esto estos estas unos unas sobre entre desde hasta " +
+    "tengo tiene tienen puede pueda porque pero tambien solo cada todo todos toda todas mucho muchos mucha muy algo cosas favor gracias hola bueno pues " +
+    "seria hacer haga hacerlo ayuda ayudame quisiera podrias puedes forma manera tipo bien mejor otra otro otros nada").split(" "));
+  function keywords(text) {
+    return uniq(wordsOnly(text).trim().split(" ").filter((w) => w.length >= 4 && !STOP.has(w))).slice(0, 40);
+  }
+  function similarity(a, b) {
+    const A = new Set(a || []), B = new Set(b || []);
+    if (!A.size || !B.size) return 0;
+    let inter = 0;
+    A.forEach((x) => { if (B.has(x)) inter++; });
+    return inter / (A.size + B.size - inter);
+  }
+
+  // Muletillas típicas al dictar por voz.
+  const FILLERS = [
+    /[¿]?\bverdad\?/gi, /,?\s*\bo sea\b,?/gi, /,?\s*\byo que s[eé](?![a-z]),?/gi, /[¿]?\bno\?(?=\s|$)/gi,
+    /\bbueno,\s*/gi, /\bpues,\s*/gi, /\bmira,\s*/gi, /\beste,\s*/gi, /\bpor favor,?\s*/gi,
+    /\bme podr[ií]as ayudar a\s*/gi, /\bquisiera saber si\s*/gi, /\bcomo que\s+(?=como)/gi,
+  ];
+  function cleanText(text) {
+    let s = String(text || "");
+    const before = s.length;
+    for (const re of FILLERS) s = s.replace(re, " ");
+    s = s.replace(/\b(\w+)(\s+\1\b)+/gi, "$1")
+      .replace(/[ \t]{2,}/g, " ").replace(/\s+([,.;:?!])/g, "$1").replace(/^\s*,\s*/gm, "").replace(/[,;]\s*$/, "").trim();
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+    return { text: s, removed: Math.max(0, before - s.length) };
+  }
+
+  // Separa datos (bloques de código, líneas de error) de la instrucción, como recomienda Anthropic.
+  function splitInput(text) {
+    const blocks = [];
+    let rest = String(text || "").replace(/```[\s\S]*?```/g, (m) => { blocks.push(m.trim()); return " "; });
+    rest = rest.split("\n").filter((line) => {
+      if (/^\s*(error|exception|traceback|warning|fatal|uncaught|at [\w.$<>]+\s*\(|file ")/i.test(line) && line.trim().length > 12) {
+        blocks.push(line.trim());
+        return false;
+      }
+      return true;
+    }).join("\n");
+    return { rest: rest.replace(/[ \t]{2,}/g, " ").trim(), blocks };
+  }
+
+  // ---------- 2. Complejidad ----------
+  const KW = {
+    simple: [" traduce", " traducir", " resume", " resumen", " ortografia", " que es ", " que significa", " define ",
+      " sinonimo", " ideas para", " lista de ideas", " correo corto", " mensaje corto", " formatea", " pasa a tabla",
+      " reescribe", " redaccion", " saludo", " chiste", " receta", " titulo para", " en una frase", " cuanto es ", " convierte "],
+    medio: [" script", " codigo", " funcion", " powershell", " python", " javascript", " html", " css", " pagina", " web ",
+      " formula", " excel", " n8n", " flujo", " workflow", " automatiza", " explica", " analiza", " compara", " depura",
+      " error", " bug", " no funciona", " sql", " consulta", " configura", " instala", " router", " driver", " informe",
+      " presentacion", " plan ", " prompt", " bot", " telegram", " whatsapp", " api ", " regex", " actualiza",
+      " mantenimiento", " diagnostico", " formatear", " bios", " red ", " falla", " no prende", " no enciende", " no abre",
+      " se cierra", " se congela", " pita", " pantalla azul", " lento"],
+    dificil: [" aplicacion completa", " app completa", " aplicacion movil", " sistema completo", " arquitectura",
+      " desde cero", " varios archivos", " multiples archivos", " todo el proyecto", " refactoriza", " migra", " backend",
+      " frontend", " base de datos", " seguridad", " auditoria", " audita", " optimiza", " investiga a fondo",
+      " investigacion", " demostracion", " demuestra", " estrategia", " multiagente", " agente", " integracion",
+      " autenticacion", " produccion", " escalable", " rendimiento", " extension", " algoritmo", " machine learning",
+      " modelo de datos"],
+    reintento: [" ya intente", " sigue sin funcionar", " sigue fallando", " otra vez", " no sirvio", " todavia no",
+      " de nuevo el error", " ya probe"],
+  };
+  const LEVELS = [null,
+    { id: 1, name: "Simple", short: "Tarea rápida, sin razonamiento profundo." },
+    { id: 2, name: "Normal", short: "Código o análisis de tamaño medio." },
+    { id: 3, name: "Compleja", short: "Varios pasos o requisitos: conviene pensar más." },
+    { id: 4, name: "Experta", short: "Diseño grande o un problema que ya falló antes." }];
+
+  function classify(text) {
+    const t = wordsOnly(text);
+    const words = countWords(text);
+    const hit = (list) => list.filter((k) => t.includes(k));
+    const why = [];
+    let score = 0;
+    const d = hit(KW.dificil), m = hit(KW.medio), s = hit(KW.simple), r = hit(KW.reintento);
+    if (d.length) { score += 3 + (d.length - 1) * 1.5; why.push("Señales de tarea grande: " + d.map((x) => x.trim()).slice(0, 4).join(", ")); }
+    if (m.length) { score += Math.min(3, 1.5 + (m.length - 1) * 0.5); why.push("Señales técnicas: " + m.map((x) => x.trim()).slice(0, 4).join(", ")); }
+    if (s.length && !d.length && !m.length) { score -= 1; why.push("Tarea de texto corta: " + s.map((x) => x.trim()).slice(0, 3).join(", ")); }
+    if (r.length) { score += 1.5; why.push("Ya hubo intentos fallidos: sube un nivel."); }
+    const reqs = String(text || "").split("\n").filter((l) => /^\s*([-*•]|\d+[.)])\s+/.test(l)).length;
+    if (reqs >= 5) { score += 1; why.push(reqs + " requisitos en lista."); }
+    if (words > 400) { score += 2; why.push("Pedido muy largo (" + words + " palabras)."); }
+    else if (words > 150) { score += 1; why.push("Pedido largo (" + words + " palabras)."); }
+    if (/```|\bfunction\b|\bdef \b|\$\w+\s*=|<\/?\w+>/.test(String(text || ""))) { score += 0.5; why.push("Incluye código."); }
+    const level = score >= 7.5 ? 4 : score >= 4.5 ? 3 : score >= 1.5 ? 2 : 1;
+    if (!why.length) why.push("Sin señales técnicas: se trata como tarea simple.");
+    return { level, score: Math.round(score * 10) / 10, why };
+  }
+
+  // ---------- 3. Tipos de tarea: rol, instrucciones, formato y preguntas propias ----------
+  // Clave que termina en espacio = palabra completa. slot = parte del prompt que completa la respuesta.
+  const TYPES = [
+    { id: "debug", name: "Error o falla", priority: 2, match: ["error ", "falla", "no funciona", "bug ", "no sirve", "no abre", "no prende", "no enciende", "se cierra", "se congela", "pantalla azul", "excepcion", "crash"],
+      role: "un ingeniero experto en diagnosticar y resolver fallas",
+      instructions: ["Identifica la causa más probable antes de proponer cambios.", "Propón el arreglo mínimo y explica en 1 a 3 frases por qué funciona.", "Indica cómo comprobar que quedó resuelto."],
+      format: "1) Causa probable. 2) Solución paso a paso o código corregido. 3) Cómo verificarlo.", cot: true,
+      qs: [
+        { id: "err_msg", k: "Error exacto", q: "¿Cuál es el mensaje de error exacto? Cópialo tal cual.", slot: "input", skip: /error:|exception|traceback|"[^"]{8,}"/ },
+        { id: "err_tried", k: "Ya intenté", q: "¿Qué ya intentaste para arreglarlo?", slot: "constraints", skip: /ya (intente|probe)/ },
+        { id: "err_when", k: "Desde cuándo pasa", q: "¿Desde cuándo pasa o qué cambiaste antes de que fallara?", slot: "context" },
+      ] },
+    { id: "script", name: "Script o comandos", match: ["powershell", "script", "ps1 ", "cmd ", "bat ", "bash", "terminal", "comando", "pwsh"],
+      role: "un ingeniero de sistemas senior experto en automatización con PowerShell y scripting",
+      instructions: ["Valida las entradas y maneja los errores con try/catch.", "Usa rutas reales y comenta solo lo necesario.", "Indica el comando exacto para ejecutarlo y si requiere administrador."],
+      format: "Un solo bloque de código completo y listo para copiar, seguido de cómo ejecutarlo.", cot: false,
+      qs: [
+        { id: "ps_ver", k: "Versión de PowerShell y Windows", q: "¿Qué versión de PowerShell y de Windows usas?", slot: "environment", fact: "Versión de PowerShell y Windows", skip: /powershell \d|pwsh|windows 1\d|ps ?7/ },
+        { id: "ps_admin", k: "Permisos", q: "¿Se ejecuta como administrador o como usuario normal?", slot: "constraints", skip: /administrador|admin/ },
+        { id: "ps_out", k: "Resultado esperado", q: "¿Qué debe producir: un archivo (ruta exacta), texto en pantalla o ambos?", slot: "success", skip: /\.csv|\.txt|\.json|\.log|c:\\|pantalla/ },
+      ] },
+    { id: "n8n", name: "Automatización (n8n)", match: ["n8n", "flujo", "workflow", "nodo", "automatiza", "webhook", "zapier", "make com"],
+      role: "un experto en automatización con n8n e integraciones por API",
+      instructions: ["Describe el flujo nodo por nodo con su configuración clave.", "Incluye las expresiones de n8n exactas cuando hagan falta.", "Señala dónde pueden fallar las credenciales o los datos de entrada."],
+      format: "Lista de nodos en orden con su configuración. El JSON del flujo solo si lo pido.", cot: false,
+      qs: [
+        { id: "n8n_host", k: "Mi n8n", q: "¿Tu n8n está en la nube o instalado local? ¿Qué versión?", slot: "environment", fact: "Mi n8n" },
+        { id: "n8n_trig", k: "Disparador", q: "¿Qué inicia el flujo: Telegram, webhook, horario, Gmail…?", slot: "context", skip: /telegram|webhook|cron|horario|gmail|whatsapp|formulario/ },
+        { id: "n8n_node", k: "Nodos", q: "¿Qué nodo falla o cuáles nodos usas?", slot: "input", skip: /nodo [a-z]/ },
+      ] },
+    { id: "web", name: "Página web", match: ["pagina", "web ", "landing", "sitio", "html", "css ", "frontend"],
+      role: "un desarrollador web front-end senior con buen criterio de diseño",
+      instructions: ["Entrega HTML, CSS y JavaScript funcionales y adaptables al celular.", "Usa una estructura semántica y accesible.", "Explica cómo publicarla en 1 a 3 frases."],
+      format: "Un archivo completo listo para abrir en el navegador.", cot: false,
+      qs: [
+        { id: "web_goal", k: "Para qué es", q: "¿Para qué es la página y quién la va a ver?", slot: "purpose" },
+        { id: "web_style", k: "Estilo visual", q: "¿Tienes colores, logo o una página de ejemplo que te guste?", slot: "input" },
+        { id: "web_host", k: "Dónde se publica", q: "¿Dónde la vas a publicar: GitHub Pages, un hosting o solo local?", slot: "environment", fact: "Dónde publico mis páginas" },
+      ] },
+    { id: "app", name: "Aplicación", match: ["aplicacion", "app ", "movil", "android", "iphone", "extension"],
+      role: "un arquitecto de software senior",
+      instructions: ["Propón primero la arquitectura y las pantallas principales.", "Divide la construcción en etapas pequeñas y verificables.", "Indica las limitaciones técnicas de la plataforma."],
+      format: "Primero un plan corto; luego el código completo por archivos.", cot: true,
+      qs: [
+        { id: "app_plat", k: "Plataforma", q: "¿Para Android, iPhone, web o PC?", slot: "environment", skip: /android|iphone|ios|windows|navegador|chrome|\bweb\b/ },
+        { id: "app_feat", k: "Funciones principales", q: "¿Cuáles son las 3 funciones más importantes?", slot: "success" },
+        { id: "app_code", k: "Mi nivel de programación", q: "¿Qué tanto sabes programar? Así ajusto las explicaciones.", slot: "audience", fact: "Mi nivel de programación" },
+      ] },
+    { id: "hardware", name: "Soporte técnico", match: ["computador", "pc ", "portatil", "laptop", "impresora", "disco", "ram ", "bios", "mantenimiento", "router", "wifi", "celular", "telefono", "tarjeta madre", "fuente de poder", "teclado", "pantalla"],
+      role: "un técnico senior de soporte y mantenimiento de equipos de cómputo",
+      instructions: ["Ordena el diagnóstico de lo más simple y barato a lo más complejo.", "Advierte riesgos eléctricos o de pérdida de datos antes de cada paso delicado.", "Indica qué herramientas se necesitan."],
+      format: "Pasos numerados y cortos, con el resultado esperado de cada uno.", cot: false,
+      qs: [
+        { id: "hw_model", k: "Equipo", q: "¿Marca, modelo y sistema operativo del equipo?", slot: "environment" },
+        { id: "hw_sym", k: "Síntoma", q: "¿Qué síntoma exacto ves: luces, pitidos, mensaje en pantalla?", slot: "input" },
+        { id: "hw_tools", k: "Herramientas disponibles", q: "¿Con qué herramientas cuentas: destornilladores, multímetro, USB booteable…?", slot: "constraints", fact: "Mis herramientas de taller" },
+      ] },
+    { id: "data", name: "Datos y hojas de cálculo", match: ["excel", "formula", "hoja de calculo", "sheets", "tabla dinamica", "sql ", "consulta sql", "analiza datos", "grafica"],
+      role: "un analista de datos experto en Excel, Google Sheets y SQL",
+      instructions: ["Da la fórmula o consulta exacta y dónde va.", "Explica con un ejemplo de fila cómo funciona.", "Indica si las fórmulas van en español o en inglés."],
+      format: "La fórmula o consulta en un bloque de código y un ejemplo corto.", cot: false,
+      qs: [
+        { id: "xl_app", k: "Mis hojas de cálculo", q: "¿Excel o Google Sheets? ¿Fórmulas en español o en inglés?", slot: "environment", fact: "Mis hojas de cálculo" },
+        { id: "xl_data", k: "Columnas y ejemplo", q: "¿Qué columnas tienes? Da un ejemplo de una fila.", slot: "input" },
+      ] },
+    { id: "writing", name: "Redacción", match: ["redacta", "escribe un", "escribeme", "correo para", "correo formal", "carta", "publicacion para", "post para", "informe", "guion", "mensaje para", "texto para", "ensayo", "hoja de vida", "cv "], intent: true,
+      role: "un redactor profesional",
+      instructions: ["Ajusta el tono al público indicado.", "Ve al punto con frases cortas.", "Termina con un llamado a la acción claro si aplica."],
+      format: "Solo el texto final, listo para usar, sin explicaciones.", cot: false,
+      qs: [
+        { id: "txt_aud", k: "Para quién", q: "¿Para quién es el texto?", slot: "audience" },
+        { id: "txt_tone", k: "Tono", q: "¿Qué tono quieres: formal, cercano o vendedor?", slot: "tone" },
+        { id: "txt_len", k: "Largo", q: "¿Qué tan largo debe ser?", slot: "format", skip: /\d+ (palabras|lineas|parrafos)|corto|breve/ },
+      ] },
+    { id: "learn", name: "Aprender un tema", match: ["explica", "que es ", "que significa", "como funciona", "diferencia entre", "aprender", "ensena", "tutorial", "curso"], intent: true,
+      role: "un profesor paciente que explica con ejemplos prácticos",
+      instructions: ["Empieza por la idea central en una frase.", "Usa una analogía y un ejemplo práctico.", "Cierra con un ejercicio corto para practicar."],
+      format: "Explicación corta por secciones, con un ejemplo.", cot: false,
+      qs: [
+        { id: "lrn_level", k: "Mi nivel en el tema", q: "¿Qué tanto sabes ya de este tema?", slot: "audience" },
+        { id: "lrn_use", k: "Para qué lo aprendo", q: "¿Para qué lo quieres aprender: trabajo, examen, un proyecto?", slot: "purpose" },
+      ] },
+    { id: "prompt", name: "Prompts y agentes de IA", match: ["prompt", "agente", "chatbot", "bot ", "gemini", "chatgpt", "claude", "ia ", "llm", "modelo de lenguaje"],
+      role: "un ingeniero de prompts experto en modelos de lenguaje",
+      instructions: ["Estructura el prompt con rol, contexto, instrucciones y formato de salida.", "Incluye ejemplos de entrada y salida.", "Indica cómo probar que el prompt funciona."],
+      format: "El prompt final en un bloque, listo para pegar.", cot: false,
+      qs: [
+        { id: "ia_where", k: "Dónde se usa", q: "¿Dónde se va a usar ese prompt: n8n, una app, un chat?", slot: "environment" },
+        { id: "ia_out", k: "Salida esperada", q: "¿Qué debe devolver la IA: texto, JSON, una lista?", slot: "format", skip: /json|lista|tabla/ },
+        { id: "ia_ex", k: "Ejemplo de entrada y salida", q: "¿Tienes un ejemplo de lo que entra y lo que debería salir?", slot: "input" },
+      ] },
+    { id: "analysis", name: "Análisis y decisiones", match: ["analiza", "compara", "investiga", "evalua", "ventajas", "desventajas", "pros ", "contras", "estrategia", "plan de negocio", "mercado"], intent: true,
+      role: "un analista senior que razona con criterios explícitos",
+      instructions: ["Define los criterios antes de comparar.", "Separa hechos de opiniones y di lo que no sabes.", "Termina con una recomendación concreta."],
+      format: "Tabla comparativa corta y una recomendación final.", cot: true,
+      qs: [
+        { id: "an_use", k: "Decisión que debo tomar", q: "¿Qué decisión vas a tomar con este análisis?", slot: "purpose" },
+        { id: "an_crit", k: "Criterios", q: "¿Qué criterios importan más: precio, tiempo, calidad, facilidad?", slot: "success" },
+      ] },
+  ];
+  const GENERAL = { id: "general", name: "General", match: [], role: "un asistente experto, preciso y directo",
+    instructions: ["Responde exactamente a lo pedido, sin relleno."], format: "", cot: false, qs: [] };
+  const TECH = ["debug", "script", "n8n", "web", "app", "hardware", "data", "prompt"];
+  const CODE = ["debug", "script", "n8n", "web", "app", "data", "prompt"];
+  const LEVEL_FORMAT = ["",
+    "Respuesta corta y directa.",
+    "Solo el código o los pasos, con una explicación de 1 a 3 frases.",
+    "Primero un plan corto en viñetas; luego la solución completa.",
+    "Primero el plan y las decisiones clave; espera mi visto bueno antes de escribir todo el código."];
+
+  // Preguntas genéricas por parte faltante (Modo Entrevista).
+  const SLOT_QS = {
+    purpose: { id: "g_purpose", k: "Para qué", q: "¿Para qué lo necesitas al final? Así la IA no adivina el objetivo.", slot: "purpose" },
+    input: { id: "g_input", k: "Datos o ejemplo", q: "¿Tienes un ejemplo, dato o mensaje exacto que deba usar?", slot: "input" },
+    environment: { id: "g_env", k: "Entorno", q: "¿En qué sistema, programa o versión lo vas a usar?", slot: "environment", fact: "Mi entorno" },
+    success: { id: "g_success", k: "Criterio de éxito", q: "¿Cómo sabrás que quedó bien?", slot: "success" },
+    audience: { id: "g_aud", k: "Audiencia", q: "¿Quién va a usar o leer el resultado y qué tanto sabe del tema?", slot: "audience" },
+    format: { id: "g_format", k: "Formato", q: "¿Cómo quieres la respuesta: código, pasos, tabla o texto corto?", slot: "format" },
+    constraints: { id: "g_limits", k: "Restricciones", q: "¿Hay algo que NO deba hacer o un límite de tiempo, dinero o largo?", slot: "constraints" },
+    tone: { id: "g_tone", k: "Tono", q: "¿Qué tono quieres: formal, cercano o técnico?", slot: "tone" },
+  };
+  const SLOT_ORDER = ["purpose", "input", "environment", "success", "audience", "format", "constraints", "tone"];
+
+  // ---------- 4. Detección de lo que trae la idea ----------
+  const RX = {
+    action: /\b(haz|hazme|crea|creame|escribe|genera|quiero|necesito|ayudame|dame|explica|explicame|arregla|corrige|actualiza|disena|construye|revisa|traduce|resume|redacta|busca|compara|analiza|convierte|mejora|optimiza|configura|instala|lista|planifica|calcula|automatiza|programa|desarrolla|ensename|evalua|investiga|que es|que significa|como (hago|puedo|se))\b/,
+    actionG: /\b(haz|hazme|crea|creame|escribe|genera|explica|explicame|arregla|corrige|actualiza|disena|construye|revisa|traduce|resume|redacta|busca|compara|analiza|convierte|mejora|optimiza|configura|instala|planifica|calcula|automatiza|programa|desarrolla|agrega|anade|quita|cambia)\b/g,
+    purpose: /\b(para que|con el fin de|mi objetivo|el objetivo|porque necesito|la idea es|que sirva para|para (poder|entregar|presentar|usar|vender|aprender|estudiar|mostrar|enviar|publicar|ahorrar|automatizar|controlar))\b/,
+    audience: /\b(para (mi jefe|mis clientes|clientes|principiantes|ninos|estudiantes|mi profesor|el instructor|usuarios|mi equipo|mi mama|mi papa)|publico|audiencia|lectores|dirigido a|nivel (basico|intermedio|avanzado)|soy (nuevo|principiante|aprendiz|estudiante))\b/,
+    environment: /\b(windows( \d+)?|linux|ubuntu|android|ios|iphone|macos|mac|powershell( \d)?|pwsh|python( \d)?|node|javascript|typescript|react|n8n|excel|google sheets|docker|version|v\d+|chrome|wordpress|mysql|postgres|sql server|office|word|git|github|arduino)\b/,
+    input: /(```|error:|exception|traceback|"[^"]{8,}"|por ejemplo|ejemplo:|\basi:|\bcomo este\b)/,
+    format: /\b(tabla|lista|pasos|json|markdown|csv|codigo completo|solo el (codigo|fragmento|cambio)|breve|corto|resumido|en \d+ (lineas|puntos|palabras|parrafos)|archivo completo|vinetas|bloque de codigo|formato)\b/,
+    constraints: /\b(sin |no uses|no agregues|no incluyas|no cambies|maximo|minimo|solo|unicamente|limite|evita|no debe|prohibido)\b/,
+    success: /\b(debe (funcionar|quedar|tener|poder|crear|mostrar|guardar)|que funcione|criterio|resultado esperado|listo cuando|al final (quiero|debe)|que (me )?(genere|guarde|muestre|cree|envie)|para verificar)\b/,
+    tone: /\b(formal|informal|cercano|amable|tecnico|profesional|divertido|serio|persuasivo|neutral|tono)\b/,
+    role: /\b(actua como|eres un|eres una|como experto|rol de|asume el rol|act as|you are)\b/,
+    vague: /\b(algo|cosas|etc|lo que sea|cualquier cosa|varias cosas|bonito|bonita|y asi)\b/,
+  };
+
+  function typesOf(text) {
+    const W = wordsOnly(text);
+    // El verbo con el que empieza el pedido manda: «Compara hostings para mi web» es un análisis, no una página.
+    const head = W.slice(0, 48);
+    const scored = TYPES.map((t) => ({
+      t, n: t.match.filter((k) => W.includes(" " + k)).length,
+    })).filter((x) => x.n > 0);
+    // Un reporte de falla casi siempre es depuración, aunque nombre la tecnología.
+    scored.forEach((x) => { x.n += (x.t.priority || 0) + (x.t.intent && x.t.match.some((k) => head.includes(" " + k)) ? 2 : 0); });
+    return scored.sort((a, b) => b.n - a.n || TYPES.indexOf(a.t) - TYPES.indexOf(b.t)).map((x) => x.t);
+  }
+
+  function detect(text) {
+    const raw = String(text || "");
+    const P = padded(raw);
+    const split = splitInput(raw);
+    const cleaned = cleanText(split.rest);
+    const types = typesOf(raw);
+    const c = classify(raw);
+    const has = {
+      action: RX.action.test(P), purpose: RX.purpose.test(P), audience: RX.audience.test(P),
+      environment: RX.environment.test(P), input: RX.input.test(fold(raw)) || split.blocks.length > 0,
+      format: RX.format.test(P), constraints: RX.constraints.test(P), success: RX.success.test(P),
+      tone: RX.tone.test(P), role: RX.role.test(P), vague: RX.vague.test(wordsOnly(raw)),
+      multi: (P.match(RX.actionG) || []).length >= 4,
+    };
+    return {
+      raw, P, empty: !raw.trim(), clean: cleaned.text, removedChars: cleaned.removed, input: split.blocks,
+      words: countWords(raw), types, primary: types[0] || GENERAL, level: c.level, levelInfo: LEVELS[c.level],
+      why: c.why, has, keywords: keywords(raw),
+    };
+  }
+
+  // ---------- 5. Rúbrica (estilo Promptfoo): aserciones con peso ----------
+  const CHECKS = [
+    { id: "action", dim: "claridad", w: 10, label: "Verbo de acción claro", fix: "Empieza con lo que quieres: «Crea…», «Corrige…», «Explícame…»." },
+    { id: "specific", dim: "claridad", w: 8, label: "Tarea específica", fix: "Nombra el qué exacto: archivo, programa, tema o dato concreto, en al menos una frase completa." },
+    { id: "purpose", dim: "claridad", w: 8, label: "Propósito (para qué)", fix: "Di para qué lo necesitas: «…para entregarlo en el SENA», «…para que lo use un cliente»." },
+    { id: "single", dim: "claridad", w: 4, label: "Una tarea a la vez", fix: "Pides muchas cosas a la vez: divídelas en mensajes o en pasos numerados." },
+    { id: "unambiguous", dim: "claridad", w: 5, label: "Sin palabras vagas", fix: "Cambia «algo», «cosas», «bonito» o «etc.» por algo concreto y medible." },
+    { id: "role", dim: "contexto", w: 7, label: "Rol asignado", fix: "Dile quién debe ser: «Actúa como técnico de soporte senior»." },
+    { id: "environment", dim: "contexto", w: 10, label: "Entorno y versiones", fix: "Menciona sistema, programa y versión: «Windows 11, PowerShell 7»." },
+    { id: "audience", dim: "contexto", w: 6, label: "Audiencia o nivel", fix: "Di para quién es o tu nivel: «soy aprendiz, nivel intermedio»." },
+    { id: "input", dim: "contexto", w: 10, label: "Datos, ejemplo o error exacto", fix: "Pega el error exacto, un ejemplo de entrada y salida, o los datos reales." },
+    { id: "format", dim: "restricciones", w: 10, label: "Formato de salida", fix: "Di cómo quieres la respuesta: código completo, pasos, tabla, máximo N líneas." },
+    { id: "constraints", dim: "restricciones", w: 8, label: "Límites (qué no hacer)", fix: "Di qué NO debe hacer: «sin librerías externas», «no cambies los nombres»." },
+    { id: "success", dim: "restricciones", w: 8, label: "Criterio de éxito", fix: "Di cómo sabrás que quedó bien: «debe crear el CSV con 3 columnas»." },
+    { id: "tone", dim: "restricciones", w: 6, label: "Tono y estilo", fix: "Indica el tono o estilo: formal, técnico, directo, en español." },
+  ];
+  const DIMS = [
+    { id: "claridad", name: "Claridad" },
+    { id: "contexto", name: "Contexto" },
+    { id: "restricciones", name: "Restricciones" },
+  ];
+
+  function applicability(det) {
+    const ids = det.types.map((t) => t.id);
+    const any = (list) => ids.some((x) => list.includes(x));
+    return {
+      action: true, specific: true, unambiguous: true, role: true, format: true, tone: true, constraints: true,
+      purpose: det.level >= 2,
+      single: det.level >= 2,
+      success: det.level >= 2,
+      audience: det.level >= 2 || any(["writing"]),
+      environment: any(TECH),
+      input: det.level >= 3 || (det.level >= 2 && any(["debug", "data", "prompt", "writing", "script"])),
+    };
+  }
+
+  function evaluate(features, appl) {
+    const checks = CHECKS.map((c) => ({ id: c.id, dim: c.dim, w: c.w, label: c.label, fix: c.fix, applicable: !!appl[c.id], pass: !!features[c.id] }));
+    const sum = (list) => list.reduce((a, c) => a + c.w, 0);
+    const app = checks.filter((c) => c.applicable);
+    const score = app.length ? Math.round((100 * sum(app.filter((c) => c.pass))) / sum(app)) : 0;
+    const dims = {};
+    DIMS.forEach((d) => {
+      const list = app.filter((c) => c.dim === d.id);
+      dims[d.id] = { name: d.name, score: list.length ? Math.round((100 * sum(list.filter((c) => c.pass))) / sum(list)) : 100, passed: list.filter((c) => c.pass).length, total: list.length };
+    });
+    return { score, dims, checks, missing: app.filter((c) => !c.pass) };
+  }
+
+  function featuresFromText(det) {
+    const h = det.has;
+    return {
+      action: h.action, specific: countWords(det.clean) >= (det.level === 1 ? 3 : 8), purpose: h.purpose, single: !h.multi, unambiguous: !h.vague,
+      role: h.role, environment: h.environment, audience: h.audience, input: h.input,
+      format: h.format, constraints: h.constraints, success: h.success, tone: h.tone,
+    };
+  }
+  function featuresFromSpec(spec, det) {
+    const h = det.has;
+    return {
+      action: h.action || spec.instructions.length > 0,
+      specific: countWords(det.clean) + spec.answerWords >= (det.level === 1 ? 3 : 8),
+      purpose: h.purpose || !!spec.objective,
+      single: !h.multi,
+      unambiguous: !h.vague,
+      role: true,
+      environment: h.environment || spec.envKnown,
+      audience: h.audience || !!spec.audience,
+      input: h.input || spec.input.length > 0 || spec.examples.length > 0,
+      format: true,
+      constraints: h.constraints || spec.constraints.length > 0,
+      success: h.success || !!spec.success,
+      tone: h.tone || !!spec.tone || spec.style.length > 0,
+    };
+  }
+
+  // ---------- 6. Modo Entrevista ----------
+  function interview(det, ctx) {
+    const facts = ctx.facts || {};
+    const profile = ctx.profile || {};
+    const appl = applicability(det);
+    const out = [], remembered = [];
+    if (det.empty) return { questions: out, remembered };
+    // Pocas preguntas en tareas simples: preguntar también cuesta tiempo.
+    const max = det.level >= 3 ? 3 : det.level === 2 ? 2 : det.primary.id === "writing" ? 1 : 0;
+    const typeQs = [];
+    for (let i = 0; i < 3; i++) det.types.forEach((t) => { if (t.qs[i]) typeQs.push(t.qs[i]); });
+    const genericSlots = SLOT_ORDER.filter((slot) => {
+      if (slot === "format") return det.primary === GENERAL && !det.has.format;
+      if (slot === "constraints") return det.level >= 3 && !det.has.constraints;
+      if (slot === "tone") return det.primary.id === "writing" && !det.has.tone;
+      if (slot === "environment") return appl.environment && !det.has.environment && !profile.sistema;
+      if (slot === "audience") return appl.audience && !det.has.audience && !profile.rol;
+      return appl[slot] && !det.has[slot];
+    }).map((s) => SLOT_QS[s]);
+    const askedSlots = new Set();
+    for (const q of typeQs.concat(genericSlots)) {
+      const generic = q.id.indexOf("g_") === 0;
+      if (q.skip && q.skip.test(det.P)) continue;
+      if (["purpose", "audience", "tone", "format"].includes(q.slot) && det.has[q.slot]) continue;
+      if (generic && askedSlots.has(q.slot)) continue;
+      if (q.fact && facts[q.fact]) { remembered.push({ label: q.fact, value: facts[q.fact], slot: q.slot }); askedSlots.add(q.slot); continue; }
+      if (out.some((x) => x.id === q.id)) continue;
+      out.push(q);
+      askedSlots.add(q.slot);
+    }
+    return { questions: out.slice(0, max), remembered };
+  }
+
+  // ---------- 7. Preferencias, perfil y memoria ----------
+  const STYLE_CHIPS = [
+    { id: "espanol", label: "En español", text: "Responde en español.", kind: "style" },
+    { id: "directo", label: "Respuestas directas", text: "Ve directo a la respuesta, sin introducciones ni resumen final.", kind: "constraint" },
+    { id: "porque", label: "El porqué en 1 a 3 frases", text: "Explica el porqué en 1 a 3 frases, no más.", kind: "style" },
+    { id: "codigo", label: "Código probado", text: "Entrega código completo y revisado contra errores comunes; si algo queda sin probar, dilo en una línea.", kind: "constraint", code: true },
+    { id: "rutas", label: "Comandos con rutas reales", text: "Da comandos listos para copiar, con rutas reales.", kind: "format", code: true },
+    { id: "fragmento", label: "Cambio pequeño: solo el fragmento", text: "Si el cambio es pequeño, muestra solo el fragmento y dónde va.", kind: "format", code: true },
+    { id: "pasos", label: "Pasos numerados", text: "Usa pasos numerados cuando haya un procedimiento.", kind: "format" },
+    { id: "ejemplo", label: "Con un ejemplo", text: "Incluye un ejemplo práctico.", kind: "style" },
+  ];
+  const FRAMEWORKS = {
+    xml: { id: "xml", name: "Etiquetas XML (Anthropic)", short: "XML" },
+    costar: { id: "costar", name: "CO-STAR", short: "CO-STAR" },
+    compact: { id: "compact", name: "Compacto", short: "Compacto" },
+  };
+  const NIVEL_TXT = { basico: "básico", intermedio: "intermedio", avanzado: "avanzado" };
+  const EMPTY_PROFILE = { nombre: "", rol: "", nivel: "intermedio", sistema: "", herramientas: "", rutas: "", metas: "", noQuiero: "", enApp: false };
+  const DEFAULT_PREFS = {
+    provider: "claude", framework: "auto", cot: "auto", useExamples: true, chips: ["espanol", "directo"], styleText: "",
+    voiceLang: "es-CO", voiceRate: 1, autoAdvance: true, autoRead: true,
+  };
+  const emptyStats = () => ({ n: 0, levels: [0, 0, 0, 0, 0], missing: {}, topics: {}, words: 0, frameworks: {}, likes: 0 });
+  const hasProfile = (p) => !!(p && (p.rol || p.sistema || p.herramientas || p.metas || p.nombre));
+
+  const str = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
+  function sanitizeProfile(p) {
+    const out = Object.assign({}, EMPTY_PROFILE);
+    if (p && typeof p === "object") Object.keys(EMPTY_PROFILE).forEach((k) => {
+      if (k === "enApp") out.enApp = p.enApp === true; else out[k] = str(p[k], 600);
+    });
+    if (!NIVEL_TXT[out.nivel]) out.nivel = "intermedio";
+    return out;
+  }
+  function sanitizePrefs(p) {
+    const out = Object.assign({}, DEFAULT_PREFS, { chips: DEFAULT_PREFS.chips.slice() });
+    if (!p || typeof p !== "object") return out;
+    if (PROVIDERS[p.provider]) out.provider = p.provider;
+    if (p.framework === "auto" || FRAMEWORKS[p.framework]) out.framework = p.framework;
+    if (["auto", "on", "off"].includes(p.cot)) out.cot = p.cot;
+    if (typeof p.useExamples === "boolean") out.useExamples = p.useExamples;
+    if (Array.isArray(p.chips)) out.chips = p.chips.filter((c) => STYLE_CHIPS.some((x) => x.id === c));
+    out.styleText = str(p.styleText, 600);
+    if (/^es-[A-Z]{2}$/.test(p.voiceLang)) out.voiceLang = p.voiceLang;
+    if (typeof p.voiceRate === "number" && p.voiceRate >= 0.6 && p.voiceRate <= 1.6) out.voiceRate = p.voiceRate;
+    if (typeof p.autoAdvance === "boolean") out.autoAdvance = p.autoAdvance;
+    if (typeof p.autoRead === "boolean") out.autoRead = p.autoRead;
+    return out;
+  }
+  function sanitizeStats(s) {
+    const out = emptyStats();
+    if (!s || typeof s !== "object") return out;
+    out.n = Math.max(0, Number(s.n) || 0);
+    if (Array.isArray(s.levels) && s.levels.length === 5) out.levels = s.levels.map((x) => Math.max(0, Number(x) || 0));
+    ["missing", "topics", "frameworks"].forEach((k) => {
+      if (s[k] && typeof s[k] === "object") Object.keys(s[k]).forEach((a) => { out[k][a.slice(0, 40)] = Math.max(0, Number(s[k][a]) || 0); });
+    });
+    out.words = Math.max(0, Number(s.words) || 0);
+    out.likes = Math.max(0, Number(s.likes) || 0);
+    return out;
+  }
+  function sanitizeFacts(f) {
+    const out = {};
+    if (f && typeof f === "object") Object.keys(f).slice(0, 60).forEach((k) => { const v = str(f[k], 300).trim(); if (v) out[k.slice(0, 80)] = v; });
+    return out;
+  }
+  const isObj = (x) => x && typeof x === "object";
+  function sanitizeEntry(e, withAnswer) {
+    if (!isObj(e) || typeof e.idea !== "string" || typeof e.prompt !== "string") return null;
+    const out = {
+      id: str(e.id, 40) || newId(), ts: Number(e.ts) || Date.now(), idea: str(e.idea, 6000), prompt: str(e.prompt, 20000),
+      type: str(e.type, 20) || "general", framework: FRAMEWORKS[e.framework] ? e.framework : "xml", cot: !!e.cot,
+      provider: PROVIDERS[e.provider] ? e.provider : "claude", score: Math.max(0, Math.min(100, Number(e.score) || 0)),
+      level: Math.max(1, Math.min(4, Number(e.level) || 1)),
+      answers: isObj(e.answers) ? sanitizeFacts(e.answers) : {},
+    };
+    out.keywords = Array.isArray(e.keywords) ? e.keywords.filter((k) => typeof k === "string").slice(0, 40) : keywords(out.idea);
+    if (withAnswer) { out.answer = str(e.answer, 4000); out.note = str(e.note, 300); }
+    return out;
+  }
+  function sanitizeTemplate(t) {
+    if (!isObj(t) || typeof t.name !== "string" || typeof t.text !== "string") return null;
+    return { id: str(t.id, 40) || newId(), name: str(t.name, 80).trim() || "Plantilla", text: str(t.text, 6000), ts: Number(t.ts) || Date.now() };
+  }
+  const listOf = (a, fn, max) => (Array.isArray(a) ? a.map(fn).filter(Boolean).slice(0, max) : []);
+
+  function sanitizeMemory(m) {
+    const src = isObj(m) ? m : {};
+    return {
+      v: 3,
+      prefs: sanitizePrefs(src.prefs),
+      profile: sanitizeProfile(src.profile),
+      facts: sanitizeFacts(src.facts),
+      stats: sanitizeStats(src.stats),
+      history: listOf(src.history, (e) => sanitizeEntry(e, false), 50),
+      favorites: listOf(src.favorites, (e) => sanitizeEntry(e, true), 100),
+      templates: listOf(src.templates, sanitizeTemplate, 50),
+    };
+  }
+
+  // Migra los datos de la versión anterior (perfil y aprendizaje).
+  function migrateLegacy(legacy) {
+    const l = legacy || {};
+    const mem = sanitizeMemory(null);
+    if (isObj(l.profile)) {
+      mem.profile = sanitizeProfile(l.profile);
+      if (typeof l.profile.estilo === "string") mem.prefs.styleText = l.profile.estilo.slice(0, 600);
+    }
+    if (isObj(l.learned)) {
+      mem.facts = sanitizeFacts(l.learned.facts);
+      mem.stats = sanitizeStats(l.learned);
+    }
+    if (PROVIDERS[l.app]) mem.prefs.provider = l.app;
+    return mem;
+  }
+
+  function personalText(profile, prefs) {
+    const p = sanitizeProfile(profile);
+    const l = [];
+    if (p.nombre || p.rol) l.push("Soy " + [p.nombre, p.rol].filter(Boolean).join(", ") + ".");
+    l.push("Nivel técnico: " + NIVEL_TXT[p.nivel] + ".");
+    if (p.sistema) l.push("Mi equipo: " + p.sistema + ".");
+    if (p.herramientas) l.push("Herramientas que uso: " + p.herramientas + ".");
+    if (p.rutas) l.push("Rutas habituales: " + p.rutas + ".");
+    if (p.metas) l.push("Mis metas: " + p.metas + ".");
+    const chips = STYLE_CHIPS.filter((c) => (prefs.chips || []).includes(c.id)).map((c) => c.text);
+    if (chips.length || prefs.styleText) l.push("Cómo quiero las respuestas: " + chips.concat(prefs.styleText ? [prefs.styleText] : []).join(" "));
+    if (p.noQuiero) l.push("No hagas: " + p.noQuiero + ".");
+    return l.join("\n").replace(/\.\./g, ".");
+  }
+  const WHERE_TO_PASTE = {
+    claude: "Claude: Configuración → Perfil → preferencias o «Instrucciones para Claude» (Settings → Profile). En Proyectos (Projects) también puedes ponerlas por proyecto.",
+    chatgpt: "ChatGPT: tu perfil → Configuración → Personalización → Instrucciones personalizadas (Custom instructions). Límite: 1.500 caracteres en Free y Go.",
+    gemini: "Gemini: Configuración y ayuda → Inteligencia personal → Información guardada (Saved info), o crea una Gem con este texto.",
+    deepseek: "DeepSeek: no encontré una opción de instrucciones fijas. Pega el texto al inicio de cada chat nuevo.",
+  };
+
+  // ---------- 8. Modelos por app (menús de octubre de 2026) ----------
+  const PROVIDERS = {
+    claude: { label: "Claude", note: "Por precio de API, Opus 5.5 cuesta 2 veces Sonnet 5.5 y 40 veces Haiku 5.5 por token. Anthropic no publica cuánto descuenta cada modelo de tu plan.",
+      levels: [null,
+        { model: "Haiku 5.5", mode: "Pensamiento extendido (Extended thinking) apagado", price: 0.5 },
+        { model: "Sonnet 5.5", mode: "Pensamiento extendido apagado", price: 10 },
+        { model: "Sonnet 5.5", mode: "Pensamiento extendido encendido · en Claude Code: esfuerzo (effort) alto", price: 10 },
+        { model: "Opus 5.5", mode: "Pensamiento extendido encendido · solo si Sonnet ya no pudo", price: 20 }] },
+    chatgpt: { label: "ChatGPT", note: "Los niveles de pensamiento más altos tienen cupos menores en Free, Go y Plus.",
+      levels: [null,
+        { model: "GPT-6 Instant", mode: "Sin pensamiento" },
+        { model: "GPT-6 Instant", mode: "Si la respuesta queda floja, pasa a Medio" },
+        { model: "GPT-6 Thinking", mode: "Nivel Alto (High)" },
+        { model: "GPT-6 Thinking", mode: "Extra alto (Extra High) · solo si Alto falló" }] },
+    gemini: { label: "Gemini", note: "Pro y Deep Think tienen cupos diarios más bajos que Flash.",
+      levels: [null,
+        { model: "Flash-Lite o Flash", mode: "Pensamiento Bajo (Low)" },
+        { model: "Flash", mode: "Pensamiento Medio (Medium)" },
+        { model: "Pro", mode: "Pensamiento Medio (Medium)" },
+        { model: "Pro", mode: "Pensamiento Alto (High) · Deep Think solo para investigación o matemática" }] },
+    deepseek: { label: "DeepSeek", note: "DeepSeek no muestra límites fijos; el modo experto es más lento.",
+      levels: [null,
+        { model: "Modo rápido (Instant)", mode: "Sin razonamiento" },
+        { model: "Modo rápido (Instant)", mode: "Activa el razonamiento solo si falla" },
+        { model: "Modo experto (Expert / DeepThink)", mode: "Razonamiento activado" },
+        { model: "Modo experto (Expert / DeepThink)", mode: "Divide la tarea en partes" }] },
+  };
+  const OUT = [0, 400, 1500, 4000, 8000];
+  const THINK = [0, 0, 0, 3000, 8000];
+
+  // ---------- 9. Elección de marco, CoT y ejemplos (estilo DSPy) ----------
+  function chooseFramework(pref, det, provider, favorites) {
+    if (pref && pref !== "auto" && FRAMEWORKS[pref]) return { id: pref, reason: "Lo elegiste en tus preferencias." };
+    const counts = {};
+    favorites.filter((f) => f.type === det.primary.id).forEach((f) => { counts[f.framework] = (counts[f.framework] || 0) + 1; });
+    const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+    if (top && counts[top] >= 2) return { id: top, reason: "Es el formato que más te ha gustado para «" + det.primary.name + "» (" + counts[top] + " favoritos)." };
+    if (det.level === 1) return { id: "compact", reason: "Tarea simple: el formato corto gasta menos tokens." };
+    if (provider === "claude") return { id: "xml", reason: "Claude sigue mejor las etiquetas XML (guía oficial de Anthropic)." };
+    return { id: "costar", reason: "CO-STAR ordena contexto, objetivo, estilo, tono, audiencia y respuesta; funciona bien en " + PROVIDERS[provider].label + "." };
+  }
+  function chooseCot(pref, det) {
+    if (pref === "on") return { on: true, reason: "Activado en tus preferencias." };
+    if (pref === "off") return { on: false, reason: "Desactivado en tus preferencias." };
+    if (det.level >= 3) return { on: true, reason: "Tarea compleja: razonar por pasos reduce errores." };
+    if (det.level === 2 && det.primary.cot) return { on: true, reason: "En «" + det.primary.name + "» conviene razonar antes de responder." };
+    return { on: false, reason: "No hace falta: gastaría tokens de salida sin mejorar la respuesta." };
+  }
+  // Selector de ejemplos por similitud (como el ExampleSelector de LangChain).
+  function selectExamples(det, favorites, enabled) {
+    if (!enabled || det.empty) return [];
+    return favorites
+      .filter((f) => f.answer && f.answer.trim())
+      .map((f) => ({ f, s: similarity(det.keywords, f.keywords) + (f.type === det.primary.id ? 0.15 : 0) }))
+      .filter((x) => x.s >= 0.2)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 2)
+      .map((x) => ({ id: x.f.id, request: clip(x.f.idea, 400), response: clip(x.f.answer, 1500), similarity: Math.round(x.s * 100) }));
+  }
+
+  // ---------- 10. Especificación del prompt ----------
+  function buildSpec(det, iv, ctx, choice) {
+    const profile = ctx.profile, prefs = ctx.prefs, answersMap = ctx.answers || {};
+    const t = det.primary;
+    const useProfile = hasProfile(profile) && !profile.enApp && det.level >= 2;
+    const usePrefs = !profile.enApp;
+    const answered = iv.questions.filter((q) => (answersMap[q.id] || "").trim()).map((q) => Object.assign({}, q, { a: answersMap[q.id].trim() }));
+    const slot = (s) => answered.filter((q) => q.slot === s);
+    const isCode = det.types.some((x) => CODE.includes(x.id));
+    const chips = usePrefs ? STYLE_CHIPS.filter((c) => prefs.chips.includes(c.id) && (!c.code || isCode)) : [];
+
+    const context = [];
+    if (useProfile) {
+      context.push("Sobre mí: " + [profile.rol, "nivel técnico " + NIVEL_TXT[profile.nivel], profile.sistema ? "uso " + profile.sistema : ""].filter(Boolean).join("; ") + ".");
+      if (profile.herramientas && det.types.some((x) => TECH.includes(x.id))) context.push("Herramientas que uso: " + profile.herramientas + ".");
+      if (profile.rutas && isCode) context.push("Mis rutas habituales: " + profile.rutas + ".");
+    }
+    iv.remembered.forEach((r) => { if (!(useProfile && r.value === profile.sistema)) context.push(r.label + ": " + r.value + "."); });
+    slot("environment").concat(slot("context")).forEach((q) => context.push(q.k + ": " + q.a + "."));
+
+    const objective = slot("purpose").map((q) => q.a).join(". ");
+    const audienceA = slot("audience").map((q) => q.a).join(". ");
+    const audience = audienceA || (useProfile && profile.rol ? "Yo: " + profile.rol + ", nivel técnico " + NIVEL_TXT[profile.nivel] + "." : "");
+    const input = det.input.slice().concat(slot("input").map((q) => q.k + ": " + q.a));
+    const constraints = slot("constraints").map((q) => q.k + ": " + q.a + ".")
+      .concat(useProfile && profile.noQuiero ? ["No hagas: " + profile.noQuiero + "."] : [])
+      .concat(chips.filter((c) => c.kind === "constraint").map((c) => c.text));
+    const style = chips.filter((c) => c.kind === "style").map((c) => c.text).concat(usePrefs && prefs.styleText ? [prefs.styleText] : []);
+    const tone = slot("tone").map((q) => q.a).join(". ");
+    const fmtAnswer = slot("format").map((q) => q.a).join(". ");
+    const baseFormat = fmtAnswer || (det.has.format ? "Respeta el formato que pido en la tarea." : t.format || LEVEL_FORMAT[det.level]);
+    const format = [baseFormat].concat(chips.filter((c) => c.kind === "format").map((c) => c.text));
+    const success = slot("success").map((q) => q.a).join(". ");
+    const pending = iv.questions.length - answered.length;
+    const instructions = t.instructions.slice();
+    if (det.level >= 3 || (pending > 0 && det.level >= 2)) instructions.push("Si falta un dato clave, pregúntame una sola vez antes de empezar.");
+
+    return {
+      role: det.has.role ? "" : t.role, task: det.clean, context, objective, audience, input, instructions,
+      constraints, style, tone, format, success, examples: choice.examples, cot: choice.cot, framework: choice.framework,
+      envKnown: slot("environment").length > 0 || iv.remembered.some((r) => r.slot === "environment") || (hasProfile(profile) && !!profile.sistema),
+      answerWords: answered.reduce((n, q) => n + countWords(q.a), 0), answered, pending, typeName: t.name,
+    };
+  }
+
+  // ---------- 11. Compiladores de marco ----------
+  const numbered = (list) => list.map((x, i) => i + 1 + ". " + x).join("\n");
+  const bullets = (list) => list.map((x) => "- " + x).join("\n");
+  const tag = (name, body) => (body && String(body).trim() ? "<" + name + ">\n" + String(body).trim() + "\n</" + name + ">" : "");
+
+  function compileXML(s) {
+    const ctxLines = s.context.slice();
+    if (s.objective) ctxLines.push("Objetivo: " + s.objective);
+    if (s.audience) ctxLines.push("Audiencia: " + s.audience);
+    const rules = s.constraints.slice();
+    if (s.tone) rules.push("Tono: " + s.tone + ".");
+    s.style.forEach((x) => rules.push(x));
+    const outFmt = s.format.slice();
+    if (s.success) outFmt.push("Estará bien si: " + s.success);
+    const ex = s.examples.length
+      ? "Usa estos ejemplos solo como referencia de estilo y nivel de detalle; no los copies.\n" +
+        s.examples.map((e) => "<example>\n<request>" + e.request + "</request>\n<ideal_response>\n" + e.response + "\n</ideal_response>\n</example>").join("\n")
+      : "";
+    const parts = [
+      s.role ? tag("role", "Eres " + s.role + ".") : "",
+      tag("context", bullets(ctxLines)),
+      tag("task", s.task),
+      tag("input_data", s.input.join("\n\n")),
+      tag("instructions", numbered(s.instructions)),
+      tag("constraints", bullets(rules)),
+      tag("examples", ex),
+      tag("output_format", bullets(outFmt)),
+      s.cot ? "Antes de responder, razona paso a paso dentro de <thinking>. Luego entrega solo la respuesta final dentro de <answer>." : "",
+    ];
+    return parts.filter(Boolean).join("\n\n");
+  }
+
+  function compileCOSTAR(s) {
+    const sec = (title, body) => (body && String(body).trim() ? "# " + title + "\n" + String(body).trim() : "");
+    const context = (s.role ? "Actúa como " + s.role + ".\n" : "") + bullets(s.context) +
+      (s.input.length ? "\nDatos:\n" + s.input.join("\n\n") : "");
+    const objective = s.task + (s.objective ? "\nPara qué: " + s.objective : "") + "\n" + numbered(s.instructions);
+    const parts = [
+      sec("CONTEXTO", context),
+      sec("OBJETIVO", objective),
+      sec("ESTILO", s.style.join(" ") || "Claro, directo y práctico."),
+      sec("TONO", s.tone || (s.typeName === "Redacción" ? "Profesional y cercano." : "Técnico y directo.")),
+      sec("AUDIENCIA", s.audience),
+      sec("RESPUESTA", bullets(s.format.concat(s.success ? ["Estará bien si: " + s.success] : []))),
+      sec("RESTRICCIONES", bullets(s.constraints)),
+      sec("EJEMPLOS", s.examples.map((e, i) => "Ejemplo " + (i + 1) + "\nPedido: " + e.request + "\nRespuesta ideal:\n" + e.response).join("\n\n") +
+        (s.examples.length ? "\n(Úsalos como referencia de estilo; no los copies.)" : "")),
+      s.cot ? "Piensa paso a paso antes de responder y entrega solo el resultado final." : "",
+    ];
+    return parts.filter(Boolean).join("\n\n");
+  }
+
+  function compileCompact(s) {
+    const lines = [(s.role ? "Actúa como " + s.role + ". " : "") + s.task];
+    if (s.context.length) lines.push("Contexto: " + s.context.join(" "));
+    if (s.input.length) lines.push("Datos:\n" + s.input.join("\n"));
+    if (s.objective) lines.push("Para qué: " + s.objective);
+    if (s.audience) lines.push("Para quién: " + s.audience);
+    lines.push("Formato: " + s.format.join(" "));
+    const rules = s.constraints.concat(s.style).concat(s.tone ? ["Tono: " + s.tone + "."] : []);
+    if (rules.length) lines.push("Reglas: " + rules.join(" "));
+    if (s.success) lines.push("Estará bien si: " + s.success);
+    if (s.examples.length) lines.push("Ejemplo de respuesta que me gusta:\n" + s.examples[0].response);
+    if (s.cot) lines.push("Piensa paso a paso y entrega solo el resultado final.");
+    return lines.join("\n");
+  }
+  const COMPILERS = { xml: compileXML, costar: compileCOSTAR, compact: compileCompact };
+
+  // ---------- 12. Consejos ----------
+  const fmt = (n) => Number(n || 0).toLocaleString("es-CO");
+  function tips(r) {
+    const out = [];
+    if (r.context >= 40000) out.push("Este chat ya es muy largo: cada mensaje reenvía ~" + fmt(r.context) + " tokens de historial. Pide un resumen y abre un chat nuevo con él.");
+    else if (r.context >= 15000) out.push("El historial ya pesa ~" + fmt(r.context) + " tokens por mensaje. Si cambias de tema, abre un chat nuevo.");
+    const top = r.provider === "claude" ? "Opus" : "el modelo más potente";
+    if (r.level <= 2) out.push("No uses " + top + " ni modos de pensamiento alto para esto: gastarías varias veces más límite por la misma respuesta.");
+    if (r.level === 4) out.push(r.provider === "claude" ? "Antes de usar Opus, prueba en Sonnet con pensamiento extendido. Usa Opus solo si falla." : "Antes del nivel más alto, prueba con el anterior. Sube solo si la respuesta falla.");
+    if (r.cot && r.level >= 3) out.push("Si activas el pensamiento extendido de la app, borra la línea de «razona paso a paso»: el modelo ya razona y pagarías dos veces.");
+    if (r.examplesTokens > 600) out.push("Tus ejemplos favoritos suman ~" + fmt(r.examplesTokens) + " tokens. Desactívalos para pedidos rápidos.");
+    if (r.usedProfile) out.push("Pega tu perfil una vez en la personalización de la app y marca «Ya lo puse en la app»: así no lo repites en cada prompt.");
+    if (r.pending > 0) out.push("Responde las preguntas de la entrevista: un dato que falta suele costar 2 o 3 mensajes de aclaración, y cada uno reenvía todo el historial.");
+    out.push("Pide solo el fragmento que cambia cuando el cambio sea pequeño.");
+    out.push("Junta tus preguntas en un solo mensaje.");
+    return out.slice(0, 4);
+  }
+
+  // ---------- 13. Ejecución completa ----------
+  function run(input) {
+    const i = input || {};
+    const memory = i.memory || sanitizeMemory(null);
+    const prefs = memory.prefs, profile = memory.profile;
+    const provider = PROVIDERS[i.provider] ? i.provider : prefs.provider;
+    const det = detect(i.text);
+    const iv = interview(det, { facts: memory.facts, profile });
+    const fw = chooseFramework(i.framework || prefs.framework, det, provider, memory.favorites);
+    const cot = chooseCot(i.cot || prefs.cot, det);
+    const examples = selectExamples(det, memory.favorites, prefs.useExamples);
+    const spec = buildSpec(det, iv, { profile, prefs, answers: i.answers }, { framework: fw.id, cot: cot.on, examples });
+    const prompt = det.empty ? "" : COMPILERS[fw.id](spec);
+    const appl = applicability(det);
+    const original = evaluate(featuresFromText(det), appl);
+    const improved = det.empty ? original : evaluate(featuresFromSpec(spec, det), appl);
+    const p = PROVIDERS[provider];
+    const rec = p.levels[det.level];
+    const contextTokens = Math.max(0, Number(i.contextMessages) || 0) * 900;
+    const thinking = THINK[det.level] + (cot.on && !THINK[det.level] ? 600 : 0);
+    const tokens = {
+      original: estimateTokens(det.raw), improved: estimateTokens(prompt), context: contextTokens,
+      output: OUT[det.level], thinking,
+    };
+    tokens.total = tokens.improved + tokens.context + tokens.output + tokens.thinking;
+    const examplesTokens = estimateTokens(examples.map((e) => e.request + e.response).join("\n"));
+    const usedProfile = hasProfile(profile) && !profile.enApp && det.level >= 2;
+    return {
+      empty: det.empty, detection: det, level: det.level, levelInfo: det.levelInfo, why: det.why,
+      type: det.primary, types: det.types, provider, providerLabel: p.label, providerNote: p.note, rec,
+      vsOpus: provider === "claude" && det.level < 4 ? Math.round(PROVIDERS.claude.levels[4].price / rec.price) : null,
+      framework: Object.assign({}, FRAMEWORKS[fw.id], { reason: fw.reason }), cot,
+      interview: iv, spec, prompt, original, improved, tokens, examples, examplesTokens,
+      tips: tips({ provider, level: det.level, context: contextTokens, cot: cot.on, examplesTokens, usedProfile, pending: spec.pending }),
+    };
+  }
+
+  // ---------- 14. Aprendizaje ----------
+  function entryFrom(result, promptText, answers) {
+    return {
+      id: newId(), ts: Date.now(), idea: result.detection.raw, prompt: promptText, type: result.type.id,
+      framework: result.framework.id, cot: result.cot.on, provider: result.provider, score: result.improved.score,
+      level: result.level, keywords: result.detection.keywords,
+      answers: Object.assign({}, ...result.spec.answered.map((q) => ({ [q.id]: answers[q.id] || q.a }))),
+    };
+  }
+  // Se llama al copiar o exportar: historial + estadísticas + datos que se recuerdan.
+  function recordUse(memory, result, promptText, answers) {
+    const m = sanitizeMemory(memory);
+    if (result.empty) return m;
+    const e = entryFrom(result, promptText, answers || {});
+    m.history = [e].concat(m.history.filter((h) => !(h.idea === e.idea && h.prompt === e.prompt))).slice(0, 50);
+    const s = m.stats;
+    s.n += 1; s.levels[result.level] += 1; s.words += result.detection.words;
+    // El rol lo agrega siempre el asesor: no cuenta como un hábito a corregir.
+    result.original.missing.forEach((c) => { if (c.id !== "role") s.missing[c.id] = (s.missing[c.id] || 0) + 1; });
+    result.types.forEach((t) => { s.topics[t.id] = (s.topics[t.id] || 0) + 1; });
+    s.frameworks[result.framework.id] = (s.frameworks[result.framework.id] || 0) + 1;
+    result.spec.answered.forEach((q) => { if (q.fact && q.a) m.facts[q.fact] = q.a.slice(0, 300); });
+    return m;
+  }
+  // "Aprender de este prompt": se guarda como favorito; con la respuesta que te gustó se vuelve ejemplo (few-shot).
+  function addFavorite(memory, result, promptText, answers, answer, note) {
+    const m = sanitizeMemory(memory);
+    if (result.empty) return m;
+    const e = entryFrom(result, promptText, answers || {});
+    e.answer = String(answer || "").slice(0, 4000);
+    e.note = String(note || "").slice(0, 300);
+    m.favorites = [e].concat(m.favorites.filter((f) => !(f.idea === e.idea && f.prompt === e.prompt))).slice(0, 100);
+    m.stats.likes += 1;
+    result.spec.answered.forEach((q) => { if (q.fact && q.a) m.facts[q.fact] = q.a.slice(0, 300); });
+    return m;
+  }
+
+  function insights(memory) {
+    const m = sanitizeMemory(memory);
+    const s = m.stats, out = [];
+    if (s.n >= 3) {
+      const pct = Math.round(((s.n - s.levels[4]) / s.n) * 100);
+      const easy = (s.levels[1] + s.levels[2]) / s.n;
+      out.push(pct + " % de tus " + s.n + " pedidos no necesitaba Opus. " + (easy >= 0.6 ? "Tu modelo base debería ser Sonnet (o Haiku para lo simple)." : "Usa Sonnet con pensamiento extendido como base y Opus solo cuando falle."));
+      const miss = Object.keys(s.missing).sort((a, b) => s.missing[b] - s.missing[a])[0];
+      const check = CHECKS.find((c) => c.id === miss);
+      if (check && s.missing[miss] / s.n >= 0.5) out.push("Casi siempre te falta «" + check.label + "» (" + s.missing[miss] + " de " + s.n + "). " + check.fix);
+      const avg = Math.round(s.words / s.n);
+      if (avg < 12) out.push("Tus ideas son muy cortas (" + avg + " palabras en promedio). Con 2 o 3 datos más la IA acierta a la primera.");
+      if (avg > 250) out.push("Tus ideas son largas (" + avg + " palabras en promedio). Quita lo que no cambia la respuesta.");
+    }
+    const topic = Object.keys(s.topics).sort((a, b) => s.topics[b] - s.topics[a])[0];
+    const tp = TYPES.find((t) => t.id === topic);
+    if (tp && s.topics[topic] >= 2) out.push("Tu tema más frecuente: " + tp.name + " (" + s.topics[topic] + " pedidos).");
+    const withAnswer = m.favorites.filter((f) => f.answer).length;
+    if (withAnswer) out.push("Tienes " + withAnswer + (withAnswer === 1 ? " ejemplo favorito" : " ejemplos favoritos") + " con respuesta: los uso como referencia en pedidos parecidos.");
+    else if (m.favorites.length) out.push("Agrega a tus favoritos la respuesta que te dio la IA: así se vuelven ejemplos que mejoran tus próximos prompts.");
+    return out;
+  }
+
+  // ---------- 15. Exportar e importar ----------
+  function toMarkdown(result, promptText) {
+    const fence = promptText.includes("```") ? "~~~~" : "```";
+    const lines = [
+      "# Prompt mejorado — Asesor IA", "",
+      "- Fecha: " + new Date().toLocaleString("es-CO"),
+      "- App: " + result.providerLabel + " · modelo recomendado: " + result.rec.model + " (" + result.rec.mode + ")",
+      "- Marco: " + result.framework.name + " · razonamiento paso a paso: " + (result.cot.on ? "sí" : "no"),
+      "- Puntaje: " + result.original.score + " → " + result.improved.score + " / 100",
+      "- Tokens del prompt: ~" + result.tokens.improved, "",
+      "## Prompt mejorado", "", fence + "text", promptText, fence, "",
+      "## Idea original", "", result.detection.raw.trim(), "",
+    ];
+    if (result.improved.missing.length) {
+      lines.push("## Qué le falta todavía", "");
+      result.improved.missing.forEach((c) => lines.push("- **" + c.label + ":** " + c.fix));
+      lines.push("");
+    }
+    return lines.join("\n");
+  }
+  function toJSON(result, promptText, answers) {
+    return JSON.stringify({
+      app: "Asesor IA", version: 3, createdAt: new Date().toISOString(),
+      provider: result.provider, model: result.rec.model, mode: result.rec.mode,
+      framework: result.framework.id, chainOfThought: result.cot.on, level: result.level, type: result.type.id,
+      score: { original: result.original.score, improved: result.improved.score, dimensions: result.improved.dims },
+      idea: result.detection.raw, answers: answers || {}, prompt: promptText,
+      missing: result.improved.missing.map((c) => ({ id: c.id, label: c.label, fix: c.fix })),
+      tokens: result.tokens,
+    }, null, 2);
+  }
+  function exportCode(memory) {
+    const m = sanitizeMemory(memory);
+    const json = JSON.stringify({ v: 3, profile: m.profile, prefs: m.prefs, facts: m.facts, stats: m.stats, favorites: m.favorites, templates: m.templates });
+    return "ASESOR3:" + btoa(unescape(encodeURIComponent(json)));
+  }
+  // Acepta ASESOR3 (esta versión), ASESOR1 (versión anterior) o un .json exportado.
+  function importData(memory, raw) {
+    const text = String(raw || "").trim();
+    let data;
+    const code = /ASESOR([13]):([A-Za-z0-9+/=]+)/.exec(text.replace(/\s+/g, ""));
+    if (code) {
+      try { data = JSON.parse(decodeURIComponent(escape(atob(code[2])))); } catch (e) { throw new Error("El código está incompleto. Cópialo otra vez completo."); }
+      if (code[1] === "1") data = { profile: data.profile, facts: data.learned && data.learned.facts, stats: data.learned, prefs: data.profile && data.profile.estilo ? { styleText: data.profile.estilo } : null };
+    } else if (text.charAt(0) === "{") {
+      try { data = JSON.parse(text); } catch (e) { throw new Error("El archivo no es un JSON válido."); }
+    } else {
+      throw new Error("No reconozco el formato. Pega un código ASESOR3: o un archivo .json exportado desde aquí.");
+    }
+    if (!isObj(data)) throw new Error("El contenido está vacío.");
+    const cur = sanitizeMemory(memory), inc = sanitizeMemory(data);
+    const mergeById = (a, b, max) => { const seen = new Set(); return b.concat(a).filter((x) => (seen.has(x.id) ? false : seen.add(x.id))).slice(0, max); };
+    return sanitizeMemory({
+      prefs: data.prefs ? sanitizePrefs(Object.assign({}, cur.prefs, data.prefs)) : cur.prefs,
+      profile: data.profile ? inc.profile : cur.profile,
+      facts: Object.assign({}, cur.facts, inc.facts),
+      stats: data.stats ? inc.stats : cur.stats,
+      history: mergeById(cur.history, inc.history, 50),
+      favorites: mergeById(cur.favorites, inc.favorites, 100),
+      templates: mergeById(cur.templates, inc.templates, 50),
+    });
+  }
+
+  const TEMPLATES = [
+    { id: "t_ps", name: "Script de PowerShell", text: "Hazme un script en PowerShell 7 que [qué debe hacer] y guarde el resultado en [ruta]. Debe funcionar en Windows [versión] y ejecutarse [como administrador o no]." },
+    { id: "t_err", name: "Depurar un error", text: "Mi [programa o flujo] falla con este error:\n[pega el error exacto]\nPasa cuando [qué haces]. Ya intenté [qué probaste]." },
+    { id: "t_n8n", name: "Flujo de n8n", text: "Quiero un flujo de n8n que se active con [disparador], haga [pasos] y envíe el resultado a [destino]. Mi n8n es [nube o local, versión]." },
+    { id: "t_web", name: "Página web", text: "Crea una página web para [para qué], dirigida a [público]. Debe tener [secciones]. Colores: [colores]. La publicaré en [dónde]." },
+    { id: "t_mail", name: "Correo profesional", text: "Redacta un correo [formal o cercano] para [destinatario] pidiendo [qué]. Máximo [N] líneas." },
+    { id: "t_learn", name: "Aprender un tema", text: "Explícame [tema] para alguien de nivel [básico o intermedio], con un ejemplo práctico y un ejercicio corto." },
+    { id: "t_hw", name: "Diagnóstico de un equipo", text: "Mi [equipo, marca y modelo] tiene este síntoma: [qué pasa]. Sistema: [sistema]. Cuento con estas herramientas: [herramientas]." },
+  ];
+
+  root.AsesorEngine = {
+    run, detect, evaluate, interview, estimateTokens, cleanText, keywords, similarity,
+    recordUse, addFavorite, insights, personalText, sanitizeMemory, sanitizeProfile, sanitizePrefs, migrateLegacy,
+    toMarkdown, toJSON, exportCode, importData, hasProfile, fmt, newId,
+    PROVIDERS, FRAMEWORKS, STYLE_CHIPS, TEMPLATES, WHERE_TO_PASTE, CHECKS, DIMS, TYPES,
+  };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
+
+<script id="app">
+(function () {
+  "use strict";
+  var rootEl = document.getElementById("root");
+  if (!window.React || !window.ReactDOM || !window.htm || !window.AsesorEngine) {
+    rootEl.innerHTML = '<p class="boot">No se pudieron cargar las librerías de la interfaz. Revisa tu conexión a internet y recarga la página.</p>';
+    return;
+  }
+  const { useState, useEffect, useMemo, useRef, useCallback } = React;
+  const html = htm.bind(React.createElement);
+  const E = window.AsesorEngine;
+  const SAMPLE = "Hazme un script en PowerShell 7 que liste los programas instalados y los guarde en C:\\Reportes\\programas.csv";
+  const MEM_KEY = "asesor.v3", DRAFT_KEY = "asesor.v3.draft", TAB_KEY = "asesor.v3.tab";
+
+  // ---------- Almacenamiento local (con try/catch: puede no estar disponible) ----------
+  const LS = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  };
+  function loadMemory() {
+    const cur = LS.get(MEM_KEY, null);
+    if (cur) return E.sanitizeMemory(cur);
+    return E.migrateLegacy({ profile: LS.get("asesor.profile", null), learned: LS.get("asesor.learned", null), app: LS.get("asesor.app", null) });
+  }
+  function loadDraft() {
+    const d = LS.get(DRAFT_KEY, null);
+    if (d && typeof d.idea === "string") return { idea: d.idea, answers: d.answers && typeof d.answers === "object" ? d.answers : {}, ctx: Number(d.ctx) || 0 };
+    const legacy = LS.get("asesor.draft", "");
+    return { idea: typeof legacy === "string" && legacy.trim() ? legacy : SAMPLE, answers: {}, ctx: 0 };
+  }
+
+  // ---------- Portapapeles y descargas ----------
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        const ok = document.execCommand("copy"); ta.remove(); return ok;
+      } catch (e2) { return false; }
+    }
+  }
+  let downloadsPromise = null;
+  function getDownloads() {
+    if (!downloadsPromise) {
+      downloadsPromise = window.claude && typeof window.claude.use === "function"
+        ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null);
+    }
+    return downloadsPromise;
+  }
+  async function saveFile(filename, content, mime) {
+    const d = await getDownloads();
+    if (d) {
+      try { await d.save({ filename, data: content }); return "Archivo guardado: " + filename; }
+      catch (e) {
+        const code = e && e.code;
+        if (code === "declined") return "Descarga cancelada.";
+        if (code === "rate_limited") return "Ya hay una descarga pendiente. Espera un momento.";
+        return "Aquí no se pudo descargar. Usa «Copiar».";
+      }
+    }
+    try {
+      const url = URL.createObjectURL(new Blob([content], { type: mime }));
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      return "Descarga iniciada: " + filename + ". Si no aparece, usa «Copiar».";
+    } catch (e) { return "No se pudo descargar. Usa «Copiar»."; }
+  }
+
+  // ---------- Voz: reconocimiento continuo + síntesis ----------
+  const FATAL = new Set(["not-allowed", "service-not-allowed", "audio-capture", "network", "language-not-supported", "unsupported"]);
+  function micMessage(code) {
+    if (code === "not-allowed" || code === "service-not-allowed") return "El micrófono está bloqueado aquí. Dentro de claude.ai los artefactos no pueden usarlo: usa el micrófono de tu teclado (Gboard) o abre la versión instalada.";
+    if (code === "audio-capture") return "No encuentro un micrófono conectado.";
+    if (code === "network") return "El dictado de Chrome necesita internet.";
+    if (code === "language-not-supported") return "Tu navegador no reconoce ese idioma. Cambia el idioma de voz en Perfil.";
+    if (code === "unsupported") return "Este navegador no tiene dictado por voz. Usa Chrome o el micrófono del teclado.";
+    return "No se pudo usar el micrófono (" + code + ").";
+  }
+  const Voice = (() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const state = { supported: !!SR, tts: "speechSynthesis" in window, listening: false, hearing: false, speaking: false, interim: "", target: null, error: "" };
+    const subs = new Set();
+    const emit = () => subs.forEach((f) => f(Object.assign({}, state)));
+    let rec = null, keep = false, opts = {}, silenceTimer = null, gotFinal = false, restarts = [];
+    let sessionFinal = "";
+
+    function run() {
+      rec = new SR();
+      rec.lang = opts.lang || "es-CO";
+      rec.continuous = true;      // no se corta en las pausas
+      rec.interimResults = true;  // texto parcial en vivo
+      rec.maxAlternatives = 1;
+      sessionFinal = "";
+      rec.onstart = () => { state.listening = true; state.error = ""; emit(); };
+      rec.onspeechstart = () => { state.hearing = true; emit(); };
+      rec.onspeechend = () => { state.hearing = false; emit(); };
+      rec.onresult = (e) => {
+        let interim = "", fin = "";
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) fin += t; else interim += t;
+        }
+        if (fin) {
+          // Chrome en Android a veces repite lo ya reconocido: solo se agrega lo nuevo.
+          let add = fin.trim();
+          if (sessionFinal && add.toLowerCase().indexOf(sessionFinal.toLowerCase()) === 0) add = add.slice(sessionFinal.length).trim();
+          sessionFinal = (sessionFinal + " " + add).trim();
+          if (add && opts.onFinal) opts.onFinal(add);
+          gotFinal = true;
+        }
+        state.interim = interim.trim();
+        state.hearing = true;
+        emit();
+        armSilence();
+      };
+      rec.onerror = (e) => {
+        const code = e.error || "error";
+        if (code === "no-speech" || code === "aborted") return;
+        state.error = code;
+        if (FATAL.has(code)) keep = false;
+        emit();
+      };
+      rec.onend = () => {
+        state.hearing = false; state.interim = "";
+        const now = Date.now();
+        restarts = restarts.filter((t) => now - t < 4000);
+        if (keep && restarts.length < 5) {
+          // Chrome corta el reconocimiento tras silencios largos: se reanuda solo.
+          restarts.push(now);
+          setTimeout(() => { if (keep) { try { run(); } catch (err) { finish(); } } }, 200);
+          emit();
+          return;
+        }
+        finish();
+      };
+      try { rec.start(); } catch (err) { state.error = "busy"; keep = false; finish(); }
+    }
+    function finish() {
+      clearTimeout(silenceTimer);
+      const err = state.error;
+      state.listening = false; state.hearing = false; state.interim = ""; state.target = null;
+      rec = null; emit();
+      const cb = opts.onEnd; opts = {};
+      if (cb) cb(FATAL.has(err) ? err : "");
+    }
+    function armSilence() {
+      clearTimeout(silenceTimer);
+      if (opts.silenceMs && gotFinal) silenceTimer = setTimeout(() => stop(), opts.silenceMs);
+    }
+    function start(o) {
+      if (!SR) { if (o.onEnd) o.onEnd("unsupported"); return; }
+      if (rec) { const prev = opts.onEnd; opts.onEnd = null; keep = false; try { rec.abort(); } catch (e) {} rec = null; if (prev) prev(""); }
+      cancelSpeak();
+      opts = o; keep = true; gotFinal = false; restarts = []; state.error = ""; state.target = o.target || null;
+      emit();
+      run();
+    }
+    function stop() {
+      keep = false; clearTimeout(silenceTimer);
+      if (rec) { try { rec.stop(); } catch (e) { finish(); } } else if (state.listening) finish();
+    }
+    let voices = [];
+    const loadVoices = () => { try { voices = speechSynthesis.getVoices(); } catch (e) { voices = []; } };
+    if (state.tts) { loadVoices(); try { speechSynthesis.onvoiceschanged = loadVoices; } catch (e) {} }
+    function speak(text, lang, rate) {
+      return new Promise((resolve) => {
+        if (!state.tts || !text) { resolve(); return; }
+        try {
+          speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          u.lang = lang || "es-CO"; u.rate = rate || 1;
+          const es = voices.filter((v) => /^es/i.test(v.lang));
+          const pick = es.find((v) => v.lang.replace("_", "-") === u.lang) || es.find((v) => /419|MX|US|CO/.test(v.lang)) || es[0];
+          if (pick) u.voice = pick;
+          let done = false;
+          const end = () => { if (!done) { done = true; state.speaking = false; emit(); resolve(); } };
+          u.onend = end; u.onerror = end;
+          state.speaking = true; emit();
+          speechSynthesis.speak(u);
+          setTimeout(end, Math.min(45000, 2000 + text.length * 95)); // por si el navegador nunca avisa el final
+        } catch (e) { state.speaking = false; emit(); resolve(); }
+      });
+    }
+    function cancelSpeak() { if (state.tts) { try { speechSynthesis.cancel(); } catch (e) {} } if (state.speaking) { state.speaking = false; emit(); } }
+    return { state, subscribe: (f) => { subs.add(f); return () => subs.delete(f); }, start, stop, speak, cancelSpeak };
+  })();
+  function useVoice() {
+    const [s, set] = useState(Object.assign({}, Voice.state));
+    useEffect(() => Voice.subscribe(set), []);
+    return s;
+  }
+
+  // ---------- Piezas de interfaz ----------
+  function Icon({ name, size = 18, className = "" }) {
+    const C = window.LucideReact && window.LucideReact[name];
+    if (!C) return html`<span className=${"inline-block rounded-full bg-current opacity-50 " + className} style=${{ width: size / 2, height: size / 2 }} aria-hidden="true"></span>`;
+    return html`<${C} size=${size} className=${className} aria-hidden="true" />`;
+  }
+  const BTN = {
+    primary: "bg-acc text-acc-ink hover:brightness-110 border border-acc",
+    ghost: "bg-raised text-ink hover:bg-line border border-line",
+    danger: "bg-raised text-bad hover:bg-line border border-bad/60",
+    subtle: "bg-transparent text-mute hover:text-ink hover:bg-raised border border-transparent",
+  };
+  function Btn({ kind = "ghost", icon, children, onClick, disabled, title, className = "", small, type = "button", pressed, label }) {
+    return html`<button type=${type} onClick=${onClick} disabled=${disabled} title=${title} aria-label=${label} aria-pressed=${pressed}
+      className=${"inline-flex items-center justify-center gap-2 rounded-lg font-bold transition disabled:opacity-40 disabled:cursor-not-allowed " +
+        (small ? "px-2.5 py-1.5 text-sm " : "px-3.5 py-2 ") + BTN[kind] + " " + className}>
+      ${icon && html`<${Icon} name=${icon} size=${small ? 16 : 18} />`}${children}
+    </button>`;
+  }
+  function Card({ title, icon, right, children, className = "" }) {
+    return html`<section className=${"rounded-2xl border border-line bg-panel p-4 sm:p-5 grid gap-4 min-w-0 " + className}>
+      ${(title || right) && html`<div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-display text-lg font-semibold flex items-center gap-2 text-ink">${icon && html`<${Icon} name=${icon} className="text-acc" />`}${title}</h2>
+        ${right}
+      </div>`}
+      ${children}
+    </section>`;
+  }
+  function Label({ htmlFor, children }) {
+    return html`<label htmlFor=${htmlFor} className="text-xs font-bold uppercase tracking-wider text-mute">${children}</label>`;
+  }
+  const INPUT = "w-full rounded-lg border border-line bg-canvas px-3 py-2 text-ink placeholder:text-faint focus:border-acc focus:outline-none";
+  function Toggle({ id, checked, onChange, children }) {
+    return html`<label htmlFor=${id} className="flex items-start gap-3 cursor-pointer">
+      <input id=${id} type="checkbox" checked=${checked} onChange=${(e) => onChange(e.target.checked)} className="mt-1 h-4 w-4 accent-[#f2a541]" />
+      <span className="text-sm text-ink">${children}</span>
+    </label>`;
+  }
+  function Wave({ on, loud }) {
+    return html`<span className=${"wave text-bad " + (on ? "on " : "") + (loud ? "loud" : "")} aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`;
+  }
+  const scoreColor = (s) => (s >= 75 ? "#4cc184" : s >= 50 ? "#f0b44c" : "#f07a62");
+  function ScoreRing({ score, label, size = 96 }) {
+    const r = 40, c = 2 * Math.PI * r, off = c * (1 - score / 100);
+    return html`<figure className="flex flex-col items-center gap-1 m-0">
+      <svg width=${size} height=${size} viewBox="0 0 100 100" role="img" aria-label=${label + ": " + score + " de 100"}>
+        <circle cx="50" cy="50" r=${r} fill="none" stroke="#24343f" strokeWidth="9" />
+        <circle cx="50" cy="50" r=${r} fill="none" stroke=${scoreColor(score)} strokeWidth="9" strokeLinecap="round"
+          strokeDasharray=${c} strokeDashoffset=${off} transform="rotate(-90 50 50)" style=${{ transition: "stroke-dashoffset .4s ease" }} />
+        <text x="50" y="56" textAnchor="middle" fill="#e4ebef" fontFamily="JetBrains Mono, monospace" fontSize="24" fontWeight="600">${score}</text>
+      </svg>
+      <figcaption className="text-xs font-bold uppercase tracking-wider text-mute">${label}</figcaption>
+    </figure>`;
+  }
+  function DimBar({ name, before, after }) {
+    return html`<div className="grid gap-1">
+      <div className="flex justify-between text-sm"><span className="text-ink">${name}</span><span className="font-mono text-mute">${before} → <b style=${{ color: scoreColor(after) }}>${after}</b></span></div>
+      <div className="relative h-2 rounded-full bg-raised overflow-hidden">
+        <div className="absolute inset-y-0 left-0 rounded-full bg-line" style=${{ width: before + "%" }}></div>
+        <div className="absolute inset-y-0 left-0 rounded-full opacity-90" style=${{ width: after + "%", background: scoreColor(after), transition: "width .4s ease" }}></div>
+      </div>
+    </div>`;
+  }
+  const PROVIDER_IDS = ["claude", "chatgpt", "gemini", "deepseek"];
+  const LEVEL_COLORS = ["", "#4cc184", "#6aa6ec", "#f0b44c", "#f07a62"];
+  const fmtDate = (ts) => new Date(ts).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  // Botón que pide confirmación tocándolo dos veces (los diálogos del navegador no funcionan aquí).
+  function ConfirmBtn({ onConfirm, children, icon = "Trash2", small = true, confirmText = "Toca otra vez para confirmar" }) {
+    const [armed, setArmed] = useState(false);
+    useEffect(() => { if (!armed) return; const t = setTimeout(() => setArmed(false), 4000); return () => clearTimeout(t); }, [armed]);
+    return html`<${Btn} kind="danger" small=${small} icon=${icon} onClick=${() => { if (armed) { setArmed(false); onConfirm(); } else setArmed(true); }}>${armed ? confirmText : children}<//>`;
+  }
+
+  // ---------- Pestaña CREAR ----------
+  function IdeaCard({ draft, setIdea, setCtx, voice, startDictation, conv, converse, prefs, setPrefs }) {
+    const dictating = voice.listening && voice.target === "idea";
+    return html`<${Card} title="Tu idea" icon="Lightbulb"
+      right=${html`<div className="flex items-center gap-2">${voice.listening && html`<${Wave} on=${true} loud=${voice.hearing} />`}
+        ${voice.speaking && html`<span className="text-sm text-info flex items-center gap-1"><${Icon} name="Volume2" size=${16} />Hablando</span>`}</div>`}>
+      <div className="grid gap-2">
+        <${Label} htmlFor="idea">Escribe, pega o dicta lo que quieres pedir<//>
+        <textarea id="idea" rows="5" value=${draft.idea} onChange=${(e) => setIdea(e.target.value)} className=${INPUT + " min-h-[130px] leading-relaxed"}
+          placeholder="Ej.: quiero un flujo de n8n que me avise por Telegram cuando llegue un correo de un cliente"></textarea>
+        ${dictating && voice.interim && html`<p className="text-sm italic text-mute" aria-live="polite">… ${voice.interim}</p>`}
+        ${draft.idea === SAMPLE && html`<p className="text-sm text-faint">Texto de ejemplo. Bórralo y escribe, pega o dicta el tuyo.</p>`}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <${Btn} kind=${dictating ? "danger" : "ghost"} icon=${dictating ? "Square" : "Mic"} onClick=${startDictation}
+          className=${dictating ? "pulse" : ""} pressed=${dictating}>${dictating ? "Detener dictado" : "Dictar de corrido"}<//>
+        <${Btn} kind=${conv ? "danger" : "primary"} icon=${conv ? "Square" : "Waves"} onClick=${converse} pressed=${!!conv}>${conv ? "Terminar conversación" : "Refinar conversando"}<//>
+        ${conv && conv.step === "idea" && voice.listening && html`<${Btn} kind="ghost" icon="Check" onClick=${() => Voice.stop()}>Listo, ya conté mi idea<//>`}
+        ${conv && conv.step === "q" && voice.listening && html`<${Btn} kind="ghost" icon="ChevronRight" onClick=${() => Voice.stop()}>Siguiente<//>`}
+      </div>
+      ${voice.error && FATAL.has(voice.error) && html`<p className="text-sm text-warn flex gap-2"><${Icon} name="AlertTriangle" size=${16} className="mt-0.5 shrink-0" />${micMessage(voice.error)}</p>`}
+      ${!voice.supported && html`<p className="text-sm text-mute">Este navegador no tiene dictado. «Refinar conversando» te leerá las preguntas en voz alta y las respondes escribiendo, o usa el micrófono de tu teclado.</p>`}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-1.5">
+          <${Label} htmlFor="ctx">Mensajes en ese chat<//>
+          <select id="ctx" value=${draft.ctx} onChange=${(e) => setCtx(Number(e.target.value))} className=${INPUT}>
+            <option value="0">Chat nuevo</option><option value="5">Unos 5</option><option value="15">Unos 15</option>
+            <option value="30">Unos 30</option><option value="60">Más de 50</option>
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          <${Label} htmlFor="fw">Marco del prompt<//>
+          <select id="fw" value=${prefs.framework} onChange=${(e) => setPrefs({ framework: e.target.value })} className=${INPUT}>
+            <option value="auto">Automático</option><option value="xml">Etiquetas XML (Anthropic)</option>
+            <option value="costar">CO-STAR</option><option value="compact">Compacto</option>
+          </select>
+        </div>
+        <div className="grid gap-1.5">
+          <${Label} htmlFor="cot">Razonamiento paso a paso<//>
+          <select id="cot" value=${prefs.cot} onChange=${(e) => setPrefs({ cot: e.target.value })} className=${INPUT}>
+            <option value="auto">Automático</option><option value="on">Siempre</option><option value="off">Nunca</option>
+          </select>
+        </div>
+      </div>
+    <//>`;
+  }
+
+  function ScoreCard({ r }) {
+    const missingNow = r.improved.missing;
+    return html`<${Card} title="Evaluación del prompt" icon="Gauge"
+      right=${html`<span className="text-sm text-mute">Rúbrica de ${r.improved.checks.filter((c) => c.applicable).length} criterios</span>`}>
+      <div className="flex flex-wrap items-center justify-around gap-4">
+        <${ScoreRing} score=${r.original.score} label="Tu idea" />
+        <${Icon} name="ChevronRight" size=${28} className="text-faint" />
+        <${ScoreRing} score=${r.improved.score} label="Mejorado" />
+      </div>
+      <div className="grid gap-3">
+        ${E.DIMS.map((d) => html`<${DimBar} key=${d.id} name=${d.name} before=${r.original.dims[d.id].score} after=${r.improved.dims[d.id].score} />`)}
+      </div>
+      <div className="grid gap-2">
+        <h3 className="font-display font-semibold text-ink">${missingNow.length ? "Qué le falta todavía" : "No le falta nada de la rúbrica"}</h3>
+        ${missingNow.length ? html`<ul className="grid gap-2">${missingNow.map((c) => html`<li key=${c.id} className="flex gap-2 text-sm">
+          <${Icon} name="XCircle" size=${16} className="text-bad mt-0.5 shrink-0" /><span><b className="text-ink">${c.label}.</b> <span className="text-mute">${c.fix}</span></span></li>`)}</ul>`
+          : html`<p className="text-sm text-good flex gap-2"><${Icon} name="CheckCircle2" size=${16} className="mt-0.5" />Claridad, contexto y restricciones completos.</p>`}
+        ${r.original.missing.length > missingNow.length && html`<p className="text-sm text-mute">El asesor completó ${r.original.missing.length - missingNow.length} de ${r.original.missing.length} puntos que le faltaban a tu idea.</p>`}
+      </div>
+    <//>`;
+  }
+
+  function InterviewCard({ r, answers, setAnswer, voice, dictateAnswer, readQuestions, conv }) {
+    const qs = r.interview.questions, known = r.interview.remembered;
+    if (!qs.length && !known.length) return null;
+    const pending = qs.filter((q) => !(answers[q.id] || "").trim()).length;
+    return html`<${Card} title="Modo entrevista" icon="Brain"
+      right=${qs.length ? html`<${Btn} small kind="ghost" icon="Volume2" onClick=${readQuestions} disabled=${!voice.tts}>Leer preguntas<//>` : null}>
+      ${qs.length > 0 && html`<p className="text-sm text-mute">${pending ? "Antes de usar el prompt, respóndeme " + (pending === 1 ? "esta pregunta" : "estas " + pending + " preguntas") + ". Cada respuesta entra al prompt y sube el puntaje." : "Listo: todas tus respuestas ya están en el prompt."}</p>`}
+      <div className="grid gap-4">
+        ${qs.map((q, i) => {
+          const live = voice.listening && voice.target === q.id;
+          const active = conv && conv.qid === q.id;
+          return html`<div key=${q.id} className=${"grid gap-1.5 rounded-xl p-2 -m-2 " + (active ? "bg-raised ring-1 ring-acc" : "")}>
+            <label htmlFor=${"q-" + q.id} className="font-bold text-ink flex gap-2"><span className="font-mono text-acc">${i + 1}.</span>${q.q}</label>
+            <div className="flex gap-2">
+              <input id=${"q-" + q.id} type="text" value=${answers[q.id] || ""} onChange=${(e) => setAnswer(q.id, e.target.value)} className=${INPUT + " min-w-0 flex-1"} />
+              <${Btn} kind=${live ? "danger" : "ghost"} icon=${live ? "Square" : "Mic"} label=${live ? "Detener" : "Dictar respuesta"} title=${live ? "Detener" : "Dictar respuesta"}
+                onClick=${() => dictateAnswer(q.id)} className=${live ? "pulse" : ""} />
+              <${Btn} kind="ghost" icon="Volume2" label="Leer pregunta" title="Leer pregunta" disabled=${!voice.tts} onClick=${() => Voice.speak(q.q)} />
+            </div>
+            ${live && voice.interim && html`<p className="text-sm italic text-mute">… ${voice.interim}</p>`}
+            ${q.fact && html`<p className="text-xs text-faint">La recordaré para no volver a preguntarla.</p>`}
+          </div>`;
+        })}
+      </div>
+      ${known.length > 0 && html`<div className="grid gap-2"><span className="text-xs font-bold uppercase tracking-wider text-mute">Ya sé de ti</span>
+        <div className="flex flex-wrap gap-2">${known.map((k) => html`<span key=${k.label} className="rounded-md border border-line bg-raised px-2 py-1 text-sm">${k.label}: ${k.value}</span>`)}</div></div>`}
+    <//>`;
+  }
+
+  function RecommendCard({ r, speakSummary, voice }) {
+    const t = r.tokens;
+    return html`<${Card} title="Modelo recomendado" icon="Cpu"
+      right=${html`<${Btn} small kind="ghost" icon="Volume2" onClick=${speakSummary} disabled=${!voice.tts}>Escuchar<//>`}>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 content-start">
+          <div className="flex gap-1" aria-hidden="true">${[1, 2, 3, 4].map((i) => html`<span key=${i} className="h-2 flex-1 rounded" style=${{ background: i <= r.level ? LEVEL_COLORS[r.level] : "#24343f" }}></span>`)}</div>
+          <span className="justify-self-start rounded-full px-2.5 py-0.5 text-xs font-bold text-canvas" style=${{ background: LEVEL_COLORS[r.level] }}>Tarea ${r.levelInfo.name.toLowerCase()} · ${r.type.name}</span>
+          <p className="text-xs font-bold uppercase tracking-wider text-mute m-0">Usa en ${r.providerLabel}</p>
+          <p className="font-display text-3xl font-extrabold leading-tight m-0">${r.rec.model}</p>
+          <p className="text-mute m-0">${r.rec.mode}</p>
+          <ul className="list-disc pl-5 text-sm text-mute grid gap-1">${[r.levelInfo.short].concat(r.why).map((w, i) => html`<li key=${i}>${w}</li>`)}</ul>
+        </div>
+        <div className="grid gap-2 content-start">
+          <table className="w-full text-sm">
+            <tbody className="font-mono">
+              ${[["Tu idea", t.original], ["Prompt mejorado", t.improved], ["Historial reenviado", t.context], ["Respuesta aprox.", t.output], ["Pensamiento aprox.", t.thinking]].map(([k, v]) =>
+                html`<tr key=${k} className="border-b border-line"><td className="py-1.5 font-sans text-mute">${k}</td><td className="py-1.5 text-right">${E.fmt(v)}</td></tr>`)}
+              <tr><td className="pt-2 font-sans font-bold">Total aprox.</td><td className="pt-2 text-right font-bold">~${E.fmt(t.total)}</td></tr>
+            </tbody>
+          </table>
+          ${r.vsOpus && html`<p className="rounded-lg border border-dashed border-line bg-raised p-3 text-sm m-0">Con Opus 5.5 pagarías unas ${r.vsOpus} veces más por token que con ${r.rec.model} (precio de API).</p>`}
+          <p className="text-xs text-faint m-0">Estimación ±30 %. ${r.providerNote}</p>
+        </div>
+      </div>
+    <//>`;
+  }
+
+  function CompareCard({ r, promptText, setEdited, edited, onCopy, onCopyOriginal, onExport, onLike, onSaveTemplate }) {
+    const [like, setLike] = useState(false);
+    const [answer, setAnswer] = useState("");
+    const [tplName, setTplName] = useState("");
+    const [tplOpen, setTplOpen] = useState(false);
+    return html`<${Card} title="Original vs. mejorado" icon="Columns"
+      right=${html`<span className="text-sm text-mute">${r.framework.name}${r.cot.on ? " · paso a paso" : ""}</span>`}>
+      <p className="text-sm text-mute m-0">${r.framework.reason} ${r.cot.reason}${r.examples.length ? " Usé " + r.examples.length + (r.examples.length === 1 ? " ejemplo favorito" : " ejemplos favoritos") + " como referencia." : ""}</p>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 content-start min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-mute">Original · ~${E.fmt(r.tokens.original)} tokens</span>
+            <${Btn} small kind="subtle" icon="Copy" onClick=${onCopyOriginal}>Copiar<//>
+          </div>
+          <pre className="prompt m-0 max-h-[460px] overflow-auto rounded-lg border border-line bg-canvas p-3 font-mono text-[13px] text-mute">${r.detection.raw}</pre>
+        </div>
+        <div className="grid gap-2 content-start min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-acc">Mejorado · ~${E.fmt(E.estimateTokens(promptText))} tokens</span>
+            ${edited != null && html`<${Btn} small kind="subtle" icon="RotateCcw" onClick=${() => setEdited(null)}>Restaurar<//>`}
+          </div>
+          <textarea aria-label="Prompt mejorado (editable)" value=${promptText} onChange=${(e) => setEdited(e.target.value)} spellCheck="false"
+            className=${INPUT + " min-h-[300px] max-h-[460px] font-mono text-[13px] leading-relaxed"}></textarea>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <${Btn} kind="primary" icon="Copy" onClick=${onCopy}>Copiar prompt<//>
+        <${Btn} icon="FileText" onClick=${() => onExport("md")}>Exportar .md<//>
+        <${Btn} icon="FileJson" onClick=${() => onExport("json")}>Exportar .json<//>
+        <${Btn} icon="Heart" onClick=${() => setLike(!like)} pressed=${like}>Aprender de este prompt<//>
+        <${Btn} icon="LayoutTemplate" onClick=${() => setTplOpen(!tplOpen)} pressed=${tplOpen}>Guardar como plantilla<//>
+      </div>
+      ${like && html`<div className="grid gap-2 rounded-xl border border-acc/50 bg-raised p-3">
+        <label htmlFor="likeAnswer" className="font-bold">¿Te gustó la respuesta que te dio la IA? Pégala aquí (opcional)</label>
+        <p className="text-sm text-mute m-0">Con la respuesta, este prompt se vuelve un ejemplo (few-shot): lo agregaré como referencia en pedidos parecidos. Sin ella, aprendo qué formato prefieres.</p>
+        <textarea id="likeAnswer" rows="4" value=${answer} onChange=${(e) => setAnswer(e.target.value)} className=${INPUT + " font-mono text-[13px]"}></textarea>
+        <div className="flex gap-2"><${Btn} kind="primary" icon="Heart" onClick=${() => { onLike(answer); setLike(false); setAnswer(""); }}>Guardar en favoritos<//>
+          <${Btn} kind="subtle" onClick=${() => setLike(false)}>Cancelar<//></div>
+      </div>`}
+      ${tplOpen && html`<div className="grid gap-2 rounded-xl border border-line bg-raised p-3">
+        <label htmlFor="tplName" className="font-bold">Nombre de la plantilla</label>
+        <p className="text-sm text-mute m-0">Se guarda tu idea actual. Pon entre [corchetes] lo que cambia cada vez.</p>
+        <div className="flex gap-2"><input id="tplName" type="text" value=${tplName} onChange=${(e) => setTplName(e.target.value)} className=${INPUT + " min-w-0 flex-1"} placeholder="Ej.: Informe semanal" />
+          <${Btn} kind="primary" icon="Save" disabled=${!tplName.trim()} onClick=${() => { onSaveTemplate(tplName.trim()); setTplName(""); setTplOpen(false); }}>Guardar<//></div>
+      </div>`}
+    <//>`;
+  }
+
+  function TipsCard({ r }) {
+    return html`<${Card} title="Para gastar menos" icon="Coins">
+      <ul className="grid gap-2">${r.tips.map((t, i) => html`<li key=${i} className="flex gap-2 text-sm"><${Icon} name="Check" size=${16} className="text-good mt-0.5 shrink-0" /><span>${t}</span></li>`)}</ul>
+    <//>`;
+  }
+
+  // ---------- Pestaña BIBLIOTECA ----------
+  function LibraryTab({ memory, update, loadIdea, notify }) {
+    const [q, setQ] = useState("");
+    const [openAns, setOpenAns] = useState(null);
+    const match = (e) => !q.trim() || (e.idea + " " + (e.name || "") + " " + (e.note || "")).toLowerCase().includes(q.toLowerCase());
+    const favs = memory.favorites.filter(match);
+    const hist = memory.history.filter(match);
+    const tpls = E.TEMPLATES.map((t) => Object.assign({ builtin: true }, t)).concat(memory.templates).filter((t) => !q.trim() || (t.name + " " + t.text).toLowerCase().includes(q.toLowerCase()));
+    const libMd = () => ["# Mis prompts favoritos — Asesor IA", ""].concat(memory.favorites.map((e) =>
+      "## " + e.idea.split("\n")[0].slice(0, 80) + "\n\n- Fecha: " + new Date(e.ts).toLocaleString("es-CO") + "\n- Marco: " + (E.FRAMEWORKS[e.framework] || {}).name +
+      " · Puntaje: " + e.score + "\n\n~~~~text\n" + e.prompt + "\n~~~~\n" + (e.answer ? "\n### Respuesta que me gustó\n\n" + e.answer + "\n" : ""))).join("\n");
+    return html`<div className="grid gap-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor="libSearch" className="sr-only">Buscar</label>
+        <div className="relative flex-1 min-w-[200px]"><span className="absolute left-3 top-2.5 text-faint"><${Icon} name="Search" size=${16} /></span>
+          <input id="libSearch" type="search" value=${q} onChange=${(e) => setQ(e.target.value)} placeholder="Buscar en favoritos, plantillas e historial" className=${INPUT + " pl-9"} /></div>
+        <${Btn} small icon="FileJson" onClick=${async () => notify(await saveFile("asesor-ia-biblioteca.json", JSON.stringify(memory, null, 2), "application/json"))}>Exportar todo .json<//>
+        <${Btn} small icon="FileText" disabled=${!memory.favorites.length} onClick=${async () => notify(await saveFile("asesor-ia-favoritos.md", libMd(), "text/markdown"))}>Favoritos .md<//>
+      </div>
+
+      <${Card} title=${"Favoritos (" + memory.favorites.length + ")"} icon="Heart">
+        <p className="text-sm text-mute m-0">Los favoritos con respuesta se usan como ejemplos (few-shot) en pedidos parecidos. Los demás enseñan qué marco prefieres.</p>
+        ${!favs.length ? html`<p className="text-sm text-faint m-0">${memory.favorites.length ? "Nada coincide con la búsqueda." : "Todavía no hay favoritos. En «Crear», toca «Aprender de este prompt» cuando un resultado te guste."}</p>` :
+          html`<ul className="grid gap-3">${favs.map((e) => html`<li key=${e.id} className="grid gap-2 rounded-xl border border-line bg-raised p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-bold text-ink min-w-0 break-words">${e.idea.split("\n")[0].slice(0, 120)}</span>
+              <span className="text-xs text-mute font-mono">${fmtDate(e.ts)} · ${(E.FRAMEWORKS[e.framework] || {}).short} · ${e.score}/100</span>
+            </div>
+            <div className="flex flex-wrap gap-2 items-center">
+              ${e.answer ? html`<span className="rounded-md bg-good/15 text-good px-2 py-0.5 text-xs font-bold">Ejemplo few-shot</span>` : html`<span className="rounded-md bg-line px-2 py-0.5 text-xs text-mute">Sin respuesta</span>`}
+              <${Btn} small icon="Pencil" kind="subtle" onClick=${() => setOpenAns(openAns === e.id ? null : e.id)}>${e.answer ? "Ver o editar respuesta" : "Agregar respuesta"}<//>
+              <${Btn} small icon="Play" kind="subtle" onClick=${() => loadIdea(e.idea, e.answers)}>Usar<//>
+              <${Btn} small icon="Copy" kind="subtle" onClick=${async () => notify((await copyText(e.prompt)) ? "Prompt copiado." : "No se pudo copiar.")}>Copiar<//>
+              <${ConfirmBtn} onConfirm=${() => update((m) => Object.assign({}, m, { favorites: m.favorites.filter((x) => x.id !== e.id) }))}>Quitar<//>
+            </div>
+            ${openAns === e.id && html`<div className="grid gap-2">
+              <label htmlFor=${"ans-" + e.id} className="text-sm font-bold">Respuesta de la IA que te gustó</label>
+              <textarea id=${"ans-" + e.id} rows="5" value=${e.answer || ""} className=${INPUT + " font-mono text-[13px]"}
+                onChange=${(ev) => { const v = ev.target.value.slice(0, 4000); update((m) => Object.assign({}, m, { favorites: m.favorites.map((x) => (x.id === e.id ? Object.assign({}, x, { answer: v }) : x)) })); }}></textarea>
+            </div>`}
+          </li>`)}</ul>`}
+      <//>
+
+      <${Card} title="Plantillas" icon="LayoutTemplate">
+        <ul className="grid gap-2 sm:grid-cols-2">${tpls.map((t) => html`<li key=${t.id} className="grid gap-2 rounded-xl border border-line bg-raised p-3 content-start">
+          <div className="flex items-center justify-between gap-2"><span className="font-bold">${t.name}</span>${t.builtin ? html`<span className="text-xs text-faint">Incluida</span>` : html`<span className="text-xs text-acc">Tuya</span>`}</div>
+          <p className="text-sm text-mute m-0 break-words">${t.text}</p>
+          <div className="flex gap-2"><${Btn} small icon="Play" onClick=${() => loadIdea(t.text, {})}>Usar<//>
+            ${!t.builtin && html`<${ConfirmBtn} onConfirm=${() => update((m) => Object.assign({}, m, { templates: m.templates.filter((x) => x.id !== t.id) }))}>Borrar<//>`}</div>
+        </li>`)}</ul>
+      <//>
+
+      <${Card} title=${"Historial (" + memory.history.length + ")"} icon="History"
+        right=${memory.history.length ? html`<${ConfirmBtn} onConfirm=${() => update((m) => Object.assign({}, m, { history: [] }))}>Borrar historial<//>` : null}>
+        ${!hist.length ? html`<p className="text-sm text-faint m-0">${memory.history.length ? "Nada coincide con la búsqueda." : "Cada prompt que copies o exportes se guarda aquí (últimos 50)."}</p>` :
+          html`<ul className="grid gap-2">${hist.map((e) => html`<li key=${e.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-2">
+            <div className="min-w-0 flex-1"><p className="m-0 truncate">${e.idea.split("\n")[0]}</p>
+              <p className="m-0 text-xs font-mono text-mute">${fmtDate(e.ts)} · ${E.PROVIDERS[e.provider].label} · ${(E.FRAMEWORKS[e.framework] || {}).short} · ${e.score}/100</p></div>
+            <div className="flex gap-1">
+              <${Btn} small kind="subtle" icon="Play" onClick=${() => loadIdea(e.idea, e.answers)} label="Reabrir" title="Reabrir" />
+              <${Btn} small kind="subtle" icon="Copy" onClick=${async () => notify((await copyText(e.prompt)) ? "Prompt copiado." : "No se pudo copiar.")} label="Copiar" title="Copiar" />
+              <${Btn} small kind="subtle" icon="Trash2" onClick=${() => update((m) => Object.assign({}, m, { history: m.history.filter((x) => x.id !== e.id) }))} label="Quitar" title="Quitar" />
+            </div>
+          </li>`)}</ul>`}
+      <//>
+    </div>`;
+  }
+
+  // ---------- Pestaña PERFIL Y MEMORIA ----------
+  function ProfileTab({ memory, update, setPrefs, notify, voice }) {
+    const p = memory.profile, prefs = memory.prefs;
+    const [code, setCode] = useState("");
+    const setProfile = (patch) => update((m) => Object.assign({}, m, { profile: E.sanitizeProfile(Object.assign({}, m.profile, patch)) }));
+    const personal = E.personalText(p, prefs);
+    const ins = E.insights(memory);
+    const facts = Object.keys(memory.facts);
+    const s = memory.stats;
+    const fileRef = useRef(null);
+    const doImport = (raw) => {
+      try { const next = E.importData(memory, raw); update(() => next); notify("Datos cargados."); setCode(""); }
+      catch (e) { notify(e.message); }
+    };
+    const field = (id, label, ph, wide, area) => html`<div className=${"grid gap-1.5 " + (wide ? "sm:col-span-2" : "")}>
+      <${Label} htmlFor=${"p-" + id}>${label}<//>
+      ${area ? html`<textarea id=${"p-" + id} rows="2" value=${p[id]} placeholder=${ph} onChange=${(e) => setProfile({ [id]: e.target.value })} className=${INPUT}></textarea>`
+        : html`<input id=${"p-" + id} type="text" value=${p[id]} placeholder=${ph} onChange=${(e) => setProfile({ [id]: e.target.value })} className=${INPUT} />`}
+    </div>`;
+    return html`<div className="grid gap-4">
+      <${Card} title="Preferencias de estilo" icon="SlidersHorizontal">
+        <p className="text-sm text-mute m-0">Se agregan a cada prompt mejorado (las de código solo en tareas técnicas).</p>
+        <div className="flex flex-wrap gap-2">${E.STYLE_CHIPS.map((c) => {
+          const on = prefs.chips.includes(c.id);
+          return html`<button key=${c.id} type="button" aria-pressed=${on} onClick=${() => setPrefs({ chips: on ? prefs.chips.filter((x) => x !== c.id) : prefs.chips.concat(c.id) })}
+            className=${"rounded-full border px-3 py-1.5 text-sm font-bold transition " + (on ? "border-acc bg-acc text-acc-ink" : "border-line bg-raised text-ink hover:bg-line")}>${on ? "✓ " : ""}${c.label}</button>`;
+        })}</div>
+        <div className="grid gap-1.5"><${Label} htmlFor="styleText">Otras preferencias (texto libre)<//>
+          <textarea id="styleText" rows="2" value=${prefs.styleText} onChange=${(e) => setPrefs({ styleText: e.target.value })} className=${INPUT}
+            placeholder="Ej.: si algo es irreversible, avísame antes"></textarea></div>
+        <${Toggle} id="useEx" checked=${prefs.useExamples} onChange=${(v) => setPrefs({ useExamples: v })}>Usar mis favoritos como ejemplos (few-shot) en pedidos parecidos<//>
+      <//>
+
+      <${Card} title="Mi perfil" icon="User">
+        <div className="grid gap-3 sm:grid-cols-2">
+          ${field("nombre", "¿Cómo te llamas?", "")}
+          ${field("rol", "¿A qué te dedicas o qué estudias?", "Ej.: aprendiz de soporte técnico")}
+          <div className="grid gap-1.5"><${Label} htmlFor="p-nivel">Nivel técnico<//>
+            <select id="p-nivel" value=${p.nivel} onChange=${(e) => setProfile({ nivel: e.target.value })} className=${INPUT}>
+              <option value="basico">Básico</option><option value="intermedio">Intermedio</option><option value="avanzado">Avanzado</option></select></div>
+          ${field("sistema", "Tu equipo y sistema", "Ej.: Windows 11, PowerShell 7, Android")}
+          ${field("herramientas", "Herramientas que más usas", "Ej.: n8n, Excel, Gemini, Telegram", true)}
+          ${field("rutas", "Rutas o carpetas habituales", "Ej.: C:\\Scripts, D:\\Clientes", true)}
+          ${field("metas", "Tus metas", "Ej.: terminar el SENA, montar mis agentes en n8n", true, true)}
+          ${field("noQuiero", "Lo que NO quieres que haga la IA", "Ej.: repetir lo que dije, ofrecer cosas extra", true)}
+        </div>
+        <${Toggle} id="enApp" checked=${p.enApp} onChange=${(v) => setProfile({ enApp: v })}>Ya pegué mi perfil y mis preferencias en la personalización de la app. No los repitas en cada prompt.<//>
+        <div className="grid gap-2 rounded-xl border border-line bg-raised p-3">
+          <h3 className="font-display font-semibold m-0">Pega esto una vez en tu app</h3>
+          <p className="text-sm text-mute m-0">${E.WHERE_TO_PASTE[prefs.provider]}</p>
+          <pre className="prompt m-0 rounded-lg border border-line bg-canvas p-3 font-mono text-[13px]">${personal}</pre>
+          <div className="flex items-center gap-3"><${Btn} small icon="Copy" onClick=${async () => notify((await copyText(personal)) ? "Copiado. Pégalo en tu app y marca «Ya pegué mi perfil»." : "No se pudo copiar.")}>Copiar texto<//>
+            <span className="text-xs font-mono text-mute">${personal.length} caracteres</span></div>
+        </div>
+      <//>
+
+      <${Card} title="Voz" icon="Volume2">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1.5"><${Label} htmlFor="vLang">Idioma de voz<//>
+            <select id="vLang" value=${prefs.voiceLang} onChange=${(e) => setPrefs({ voiceLang: e.target.value })} className=${INPUT}>
+              <option value="es-CO">Español (Colombia)</option><option value="es-ES">Español (España)</option>
+              <option value="es-MX">Español (México)</option><option value="es-US">Español (Estados Unidos)</option></select></div>
+          <div className="grid gap-1.5"><${Label} htmlFor="vRate">Velocidad de lectura: ${prefs.voiceRate.toFixed(1)}<//>
+            <input id="vRate" type="range" min="0.6" max="1.6" step="0.1" value=${prefs.voiceRate} onChange=${(e) => setPrefs({ voiceRate: Number(e.target.value) })} className="accent-[#f2a541]" /></div>
+        </div>
+        <${Toggle} id="autoRead" checked=${prefs.autoRead} onChange=${(v) => setPrefs({ autoRead: v })}>En «Refinar conversando», leer en voz alta el resumen y cada pregunta<//>
+        <${Toggle} id="autoAdv" checked=${prefs.autoAdvance} onChange=${(v) => setPrefs({ autoAdvance: v })}>Al responder preguntas, pasar a la siguiente tras 4 segundos de silencio (tu idea inicial nunca se corta por pausas)<//>
+        <div className="flex flex-wrap gap-2 items-center"><${Btn} small icon="Play" disabled=${!voice.tts} onClick=${() => Voice.speak("Hola. Así sueno cuando te leo las preguntas.", prefs.voiceLang, prefs.voiceRate)}>Probar voz<//>
+          <span className="text-sm text-mute">${voice.supported ? "Dictado disponible en este navegador." : "Este navegador no tiene dictado; la lectura en voz alta sí funciona."} El dictado de Chrome envía tu voz a Google para convertirla en texto.</span></div>
+      <//>
+
+      <${Card} title="Tu entrenamiento" icon="Star">
+        <div className="grid grid-cols-4 gap-2">${["Simple", "Normal", "Compleja", "Experta"].map((n, i) => html`<div key=${n} className="rounded-lg border border-line bg-raised p-2 text-center">
+          <span className="block font-mono text-xl" style=${{ color: LEVEL_COLORS[i + 1] }}>${s.levels[i + 1]}</span><span className="text-xs text-mute">${n}</span></div>`)}</div>
+        ${ins.length ? html`<ul className="grid gap-2">${ins.map((t, i) => html`<li key=${i} className="flex gap-2 text-sm"><${Icon} name="Lightbulb" size=${16} className="text-acc mt-0.5 shrink-0" />${t}</li>`)}</ul>`
+          : html`<p className="text-sm text-mute m-0">Cada prompt que copies o exportes me enseña cómo pides las cosas. Con 3 empiezo a darte consejos personales.</p>`}
+        ${facts.length > 0 && html`<div className="grid gap-2"><span className="text-xs font-bold uppercase tracking-wider text-mute">Lo que recuerdo de ti</span>
+          <ul className="grid gap-1">${facts.map((k) => html`<li key=${k} className="flex items-center justify-between gap-2 border-b border-line py-1.5 text-sm">
+            <span className="min-w-0 break-words">${k}: ${memory.facts[k]}</span>
+            <${Btn} small kind="subtle" icon="X" onClick=${() => update((m) => { const f = Object.assign({}, m.facts); delete f[k]; return Object.assign({}, m, { facts: f }); })}>Olvidar<//></li>`)}</ul></div>`}
+      <//>
+
+      <${Card} title="Respaldo y otros dispositivos" icon="Save">
+        <p className="text-sm text-mute m-0">Todo se guarda solo en este navegador. Para pasarlo al teléfono o al PC copia el código y pégalo allá.</p>
+        <div className="flex flex-wrap gap-2">
+          <${Btn} small icon="Copy" onClick=${async () => notify((await copyText(E.exportCode(memory))) ? "Código copiado." : "No se pudo copiar.")}>Copiar código de respaldo<//>
+          <${Btn} small icon="FileJson" onClick=${async () => notify(await saveFile("asesor-ia-respaldo.json", JSON.stringify(memory, null, 2), "application/json"))}>Exportar .json<//>
+          <${Btn} small icon="Upload" onClick=${() => fileRef.current && fileRef.current.click()}>Importar .json<//>
+          <input ref=${fileRef} type="file" accept=".json,application/json" className="hidden" onChange=${(e) => {
+            const file = e.target.files && e.target.files[0]; if (!file) return;
+            const rd = new FileReader(); rd.onload = () => doImport(String(rd.result || "")); rd.onerror = () => notify("No pude leer el archivo."); rd.readAsText(file); e.target.value = "";
+          }} />
+        </div>
+        <div className="grid gap-1.5"><${Label} htmlFor="importCode">Cargar un código (ASESOR3 o ASESOR1)<//>
+          <textarea id="importCode" rows="2" value=${code} onChange=${(e) => setCode(e.target.value)} className=${INPUT + " font-mono text-[13px]"} placeholder="Pega aquí el código ASESOR3:…"></textarea>
+          <div className="flex flex-wrap gap-2"><${Btn} small kind="primary" icon="Upload" disabled=${!code.trim()} onClick=${() => doImport(code)}>Cargar<//>
+            <${ConfirmBtn} onConfirm=${() => { update(() => E.sanitizeMemory(null)); notify("Todo borrado."); }} confirmText="Toca otra vez: borra perfil, favoritos e historial">Borrar todo<//></div></div>
+      <//>
+    </div>`;
+  }
+
+  // ---------- Aplicación ----------
+  function App() {
+    const [memory, setMemory] = useState(loadMemory);
+    const [draft, setDraftState] = useState(loadDraft);
+    const [tab, setTab] = useState(() => { const t = LS.get(TAB_KEY, "crear"); return ["crear", "biblioteca", "perfil"].includes(t) ? t : "crear"; });
+    const [edited, setEdited] = useState(null);
+    const [toast, setToast] = useState(null);
+    const [conv, setConv] = useState(null);
+    const voice = useVoice();
+    const draftRef = useRef(draft), memRef = useRef(memory), convRef = useRef(null);
+    memRef.current = memory;
+
+    const notify = useCallback((msg) => { if (!msg) return; setToast({ msg, id: Date.now() }); }, []);
+    useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }, [toast]);
+    const warnedRef = useRef(false);
+    useEffect(() => {
+      const t = setTimeout(() => {
+        if (!LS.set(MEM_KEY, memory) && !warnedRef.current) { warnedRef.current = true; notify("No pude guardar en este navegador (almacenamiento lleno o bloqueado). Lo de esta sesión se perderá al cerrar."); }
+      }, 250);
+      return () => clearTimeout(t);
+    }, [memory]);
+    useEffect(() => { const t = setTimeout(() => LS.set(DRAFT_KEY, draft), 250); return () => clearTimeout(t); }, [draft]);
+    useEffect(() => { LS.set(TAB_KEY, tab); }, [tab]);
+    useEffect(() => { getDownloads(); }, []);
+
+    // Actualiza el borrador de forma síncrona en la ref (la conversación por voz lo lee al instante).
+    const updateDraft = useCallback((fn) => { const next = fn(draftRef.current); draftRef.current = next; setDraftState(next); }, []);
+    const update = useCallback((fn) => setMemory((m) => E.sanitizeMemory(fn(m))), []);
+    const setPrefs = useCallback((patch) => update((m) => Object.assign({}, m, { prefs: Object.assign({}, m.prefs, patch) })), [update]);
+    const prefs = memory.prefs;
+
+    const r = useMemo(() => E.run({ text: draft.idea, answers: draft.answers, contextMessages: draft.ctx, memory }), [draft, memory]);
+    useEffect(() => { setEdited(null); }, [r.prompt]);
+    const promptText = edited != null ? edited : r.prompt;
+    const runNow = () => E.run({ text: draftRef.current.idea, answers: draftRef.current.answers, contextMessages: draftRef.current.ctx, memory: memRef.current });
+
+    const join = (a, b) => (a && a.trim() ? a.replace(/\s+$/, "") + " " : "") + b;
+    const appendTo = (target, text) => updateDraft((d) => target === "idea"
+      ? Object.assign({}, d, { idea: join(d.idea === SAMPLE ? "" : d.idea, text) })
+      : Object.assign({}, d, { answers: Object.assign({}, d.answers, { [target]: join(d.answers[target] || "", text) }) }));
+    const speak = (text) => Voice.speak(text, memRef.current.prefs.voiceLang, memRef.current.prefs.voiceRate);
+
+    function listen(target, silenceMs) {
+      return new Promise((resolve, reject) => {
+        Voice.start({ lang: memRef.current.prefs.voiceLang, target, silenceMs, onFinal: (t) => appendTo(target, t),
+          onEnd: (err) => (err ? reject(new Error(micMessage(err))) : resolve()) });
+      });
+    }
+    const toggleListen = (target, silenceMs) => {
+      if (voice.listening && voice.target === target) { Voice.stop(); return; }
+      if (target === "idea" && draftRef.current.idea === SAMPLE) updateDraft((d) => Object.assign({}, d, { idea: "", answers: {} }));
+      listen(target, silenceMs).catch((e) => notify(e.message));
+    };
+
+    const summary = (res) => "Tarea " + res.levelInfo.name.toLowerCase() + ". En " + res.providerLabel + " usa " + res.rec.model + ". " +
+      res.rec.mode.split("·")[0].trim() + ". Tu idea tiene " + res.original.score + " puntos de 100; el prompt mejorado, " + res.improved.score + ".";
+
+    // Conversación: cuentas tu idea de corrido → resumen hablado → preguntas una a una → resultado.
+    async function converse() {
+      if (convRef.current) { convRef.current.cancelled = true; Voice.stop(); Voice.cancelSpeak(); convRef.current = null; setConv(null); return; }
+      const token = { cancelled: false };
+      convRef.current = token;
+      const guard = () => { if (token.cancelled) throw new Error(""); };
+      const say = async (t) => { if (memRef.current.prefs.autoRead) { await speak(t); guard(); } };
+      try {
+        setConv({ step: "idea" });
+        const idea = draftRef.current.idea;
+        if (!idea.trim() || idea === SAMPLE) {
+          updateDraft((d) => Object.assign({}, d, { idea: "", answers: {} }));
+          await say("Cuéntame tu idea. Habla con calma; las pausas no me cortan. Cuando termines, toca Listo.");
+          if (Voice.state.supported) { await listen("idea", 0); guard(); }
+          else { notify("Este navegador no tiene dictado: escribe tu idea y vuelve a tocar «Refinar conversando»."); throw new Error(""); }
+        }
+        let res = runNow();
+        if (res.empty) { notify("No escuché ninguna idea. Intenta de nuevo."); throw new Error(""); }
+        const qs = res.interview.questions.filter((q) => !(draftRef.current.answers[q.id] || "").trim());
+        await say(summary(res) + (qs.length ? " Te haré " + (qs.length === 1 ? "una pregunta." : qs.length + " preguntas.") : ""));
+        for (const q of qs) {
+          guard();
+          setConv({ step: "q", qid: q.id });
+          await say(q.q);
+          if (Voice.state.supported) { await listen(q.id, memRef.current.prefs.autoAdvance ? 4000 : 0); guard(); }
+        }
+        res = runNow();
+        await say("Listo. Tu prompt mejorado tiene " + res.improved.score + " puntos de 100. Revísalo y cópialo.");
+        notify("Conversación terminada: el prompt ya tiene tus respuestas.");
+      } catch (e) {
+        if (e && e.message) notify(e.message);
+      } finally {
+        if (convRef.current === token) { convRef.current = null; setConv(null); }
+      }
+    }
+
+    const readQuestions = async () => {
+      for (const q of r.interview.questions) { await speak(q.q); }
+    };
+    const record = () => update((m) => E.recordUse(m, r, promptText, draft.answers));
+    const onCopy = async () => {
+      if (r.empty) { notify("Escribe primero tu idea."); return; }
+      const ok = await copyText(promptText);
+      notify(ok ? "Copiado. Pégalo en " + r.providerLabel + " con " + r.rec.model + "." : "No se pudo copiar: selecciona el texto y cópialo a mano.");
+      if (ok) record();
+    };
+    const onExport = async (kind) => {
+      if (r.empty) { notify("Escribe primero tu idea."); return; }
+      const stamp = new Date().toISOString().slice(0, 10);
+      const msg = kind === "md"
+        ? await saveFile("prompt-" + stamp + ".md", E.toMarkdown(r, promptText), "text/markdown")
+        : await saveFile("prompt-" + stamp + ".json", E.toJSON(r, promptText, draft.answers), "application/json");
+      notify(msg); record();
+    };
+    const onLike = (answer) => {
+      if (r.empty) return;
+      update((m) => E.addFavorite(E.recordUse(m, r, promptText, draft.answers), r, promptText, draft.answers, answer, ""));
+      notify(answer.trim() ? "Aprendido: lo usaré como ejemplo en pedidos parecidos." : "Guardado en favoritos. Agrega la respuesta de la IA para que sea un ejemplo.");
+    };
+    const onSaveTemplate = (name) => {
+      update((m) => Object.assign({}, m, { templates: [{ id: E.newId(), name, text: draft.idea, ts: Date.now() }].concat(m.templates) }));
+      notify("Plantilla guardada en tu biblioteca.");
+    };
+    const loadIdea = (idea, answers) => { updateDraft((d) => Object.assign({}, d, { idea, answers: answers || {} })); setTab("crear"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+
+    const TABS = [["crear", "Crear", "Wand2"], ["biblioteca", "Biblioteca", "Library"], ["perfil", "Perfil y memoria", "User"]];
+    return html`<div className="grid gap-4 font-sans text-ink">
+      <header className="grid gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="font-display text-3xl font-extrabold tracking-tight m-0 flex items-center gap-2"><${Icon} name="Sparkles" size=${26} className="text-acc" />Asesor IA</h1>
+            <p className="text-mute m-0">Convierte tu idea en un prompt profesional y gasta menos límite de uso.</p>
+          </div>
+          <fieldset className="flex flex-wrap gap-1.5 border-0 p-0 m-0">
+            <legend className="sr-only">App donde lo vas a pedir</legend>
+            ${PROVIDER_IDS.map((id) => html`<button key=${id} type="button" aria-pressed=${prefs.provider === id} onClick=${() => setPrefs({ provider: id })}
+              className=${"rounded-full border px-3 py-1.5 text-sm font-bold transition " + (prefs.provider === id ? "border-ink bg-ink text-canvas" : "border-line bg-raised text-ink hover:bg-line")}>${E.PROVIDERS[id].label}</button>`)}
+          </fieldset>
+        </div>
+        <nav className="flex gap-1 overflow-x-auto border-b border-line" aria-label="Secciones">
+          ${TABS.map(([id, label, icon]) => html`<button key=${id} type="button" onClick=${() => setTab(id)} aria-current=${tab === id ? "page" : undefined}
+            className=${"-mb-px flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-bold transition " + (tab === id ? "border-acc text-ink" : "border-transparent text-mute hover:text-ink")}>
+            <${Icon} name=${icon} size=${16} />${label}${id === "biblioteca" && memory.favorites.length ? html`<span className="rounded-full bg-raised px-1.5 text-xs font-mono">${memory.favorites.length}</span>` : null}</button>`)}
+        </nav>
+      </header>
+
+      ${tab === "crear" && html`<main className="grid gap-4">
+        <${IdeaCard} draft=${draft} voice=${voice} conv=${conv} converse=${converse} prefs=${prefs} setPrefs=${setPrefs}
+          setIdea=${(v) => updateDraft((d) => Object.assign({}, d, { idea: v }))} setCtx=${(v) => updateDraft((d) => Object.assign({}, d, { ctx: v }))}
+          startDictation=${() => toggleListen("idea", 0)} />
+        ${r.empty ? html`<${Card}><p className="text-mute m-0">Escribe o dicta tu idea arriba. Te diré qué modelo usar, qué le falta, te haré preguntas y armaré el prompt.</p><//>` : html`<${React.Fragment}>
+          <${InterviewCard} r=${r} answers=${draft.answers} voice=${voice} readQuestions=${readQuestions} conv=${conv}
+            setAnswer=${(id, v) => updateDraft((d) => Object.assign({}, d, { answers: Object.assign({}, d.answers, { [id]: v }) }))}
+            dictateAnswer=${(id) => toggleListen(id, memory.prefs.autoAdvance ? 4000 : 0)} />
+          <${ScoreCard} r=${r} />
+          <${CompareCard} r=${r} promptText=${promptText} edited=${edited} setEdited=${setEdited}
+            onCopy=${onCopy} onCopyOriginal=${async () => notify((await copyText(r.detection.raw)) ? "Original copiado." : "No se pudo copiar.")}
+            onExport=${onExport} onLike=${onLike} onSaveTemplate=${onSaveTemplate} />
+          <${RecommendCard} r=${r} voice=${voice} speakSummary=${() => speak(summary(r) + (r.interview.questions[0] ? " Primera pregunta: " + r.interview.questions[0].q : ""))} />
+          <${TipsCard} r=${r} />
+        <//>`}
+      </main>`}
+      ${tab === "biblioteca" && html`<${LibraryTab} memory=${memory} update=${update} loadIdea=${loadIdea} notify=${notify} />`}
+      ${tab === "perfil" && html`<${ProfileTab} memory=${memory} update=${update} setPrefs=${setPrefs} notify=${notify} voice=${voice} />`}
+
+      <footer className="text-xs text-faint">Todo se calcula en tu navegador; el motor no llama a ninguna IA. Modelos según los menús de octubre de 2026.</footer>
+      ${toast && html`<div role="status" key=${toast.id}
+        className="fixed left-1/2 z-50 w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-line bg-raised px-4 py-3 text-sm shadow-2xl"
+        style=${{ bottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>${toast.msg}</div>`}
+    </div>`;
+  }
+
+  ReactDOM.createRoot(rootEl).render(html`<${App} />`);
+})();
+</script>
