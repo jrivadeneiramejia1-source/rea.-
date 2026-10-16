@@ -1,0 +1,1101 @@
+<title>Lanzador de Scripts</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Guarda, audita, descarga y comparte scripts de soporte técnico (PowerShell 7, CMD, Bash, Python) desde el celular o cualquier PC.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style id="tw">/* tailwind:start */
+*,:after,:before{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }::backdrop{--tw-border-spacing-x:0;--tw-border-spacing-y:0;--tw-translate-x:0;--tw-translate-y:0;--tw-rotate:0;--tw-skew-x:0;--tw-skew-y:0;--tw-scale-x:1;--tw-scale-y:1;--tw-pan-x: ;--tw-pan-y: ;--tw-pinch-zoom: ;--tw-scroll-snap-strictness:proximity;--tw-gradient-from-position: ;--tw-gradient-via-position: ;--tw-gradient-to-position: ;--tw-ordinal: ;--tw-slashed-zero: ;--tw-numeric-figure: ;--tw-numeric-spacing: ;--tw-numeric-fraction: ;--tw-ring-inset: ;--tw-ring-offset-width:0px;--tw-ring-offset-color:#fff;--tw-ring-color:rgba(59,130,246,.5);--tw-ring-offset-shadow:0 0 #0000;--tw-ring-shadow:0 0 #0000;--tw-shadow:0 0 #0000;--tw-shadow-colored:0 0 #0000;--tw-blur: ;--tw-brightness: ;--tw-contrast: ;--tw-grayscale: ;--tw-hue-rotate: ;--tw-invert: ;--tw-saturate: ;--tw-sepia: ;--tw-drop-shadow: ;--tw-backdrop-blur: ;--tw-backdrop-brightness: ;--tw-backdrop-contrast: ;--tw-backdrop-grayscale: ;--tw-backdrop-hue-rotate: ;--tw-backdrop-invert: ;--tw-backdrop-opacity: ;--tw-backdrop-saturate: ;--tw-backdrop-sepia: ;--tw-contain-size: ;--tw-contain-layout: ;--tw-contain-paint: ;--tw-contain-style: }/*! tailwindcss v3.4.17 | MIT License | https://tailwindcss.com*/*,:after,:before{box-sizing:border-box;border:0 solid #e5e7eb}:after,:before{--tw-content:""}:host,html{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;-o-tab-size:4;tab-size:4;font-family:IBM Plex Sans,system-ui,sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}hr{height:0;color:inherit;border-top-width:1px}abbr:where([title]){-webkit-text-decoration:underline dotted;text-decoration:underline dotted}h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}a{color:inherit;text-decoration:inherit}b,strong{font-weight:bolder}code,kbd,pre,samp{font-family:IBM Plex Mono,monospace;font-feature-settings:normal;font-variation-settings:normal;font-size:1em}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sub{bottom:-.25em}sup{top:-.5em}table{text-indent:0;border-color:inherit;border-collapse:collapse}button,input,optgroup,select,textarea{font-family:inherit;font-feature-settings:inherit;font-variation-settings:inherit;font-size:100%;font-weight:inherit;line-height:inherit;letter-spacing:inherit;color:inherit;margin:0;padding:0}button,select{text-transform:none}button,input:where([type=button]),input:where([type=reset]),input:where([type=submit]){-webkit-appearance:button;background-color:transparent;background-image:none}:-moz-focusring{outline:auto}:-moz-ui-invalid{box-shadow:none}progress{vertical-align:baseline}::-webkit-inner-spin-button,::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}blockquote,dd,dl,figure,h1,h2,h3,h4,h5,h6,hr,p,pre{margin:0}fieldset{margin:0}fieldset,legend{padding:0}menu,ol,ul{list-style:none;margin:0;padding:0}dialog{padding:0}textarea{resize:vertical}input::-moz-placeholder,textarea::-moz-placeholder{opacity:1;color:#9ca3af}input::placeholder,textarea::placeholder{opacity:1;color:#9ca3af}[role=button],button{cursor:pointer}:disabled{cursor:default}audio,canvas,embed,iframe,img,object,svg,video{display:block;vertical-align:middle}img,video{max-width:100%;height:auto}[hidden]:where(:not([hidden=until-found])){display:none}.static{position:static}.fixed{position:fixed}.absolute{position:absolute}.relative{position:relative}.inset-0{inset:0}.left-1\/2{left:50%}.left-3{left:.75rem}.top-1\/2{top:50%}.z-50{z-index:50}.m-0{margin:0}.-mb-px{margin-bottom:-1px}.ml-auto{margin-left:auto}.mt-0\.5{margin-top:.125rem}.mt-1{margin-top:.25rem}.line-clamp-2{overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}.inline-block{display:inline-block}.flex{display:flex}.inline-flex{display:inline-flex}.grid{display:grid}.hidden{display:none}.h-16{height:4rem}.h-full{height:100%}.max-h-24{max-height:6rem}.max-h-\[90vh\]{max-height:90vh}.min-h-\[320px\]{min-height:320px}.min-h-\[40px\]{min-height:40px}.min-h-\[48px\]{min-height:48px}.w-16{width:4rem}.w-\[min\(92vw\2c 520px\)\]{width:min(92vw,520px)}.w-full{width:100%}.min-w-0{min-width:0}.max-w-\[300px\]{max-width:300px}.max-w-sm{max-width:24rem}.flex-1{flex:1 1 0%}.shrink-0{flex-shrink:0}.-translate-x-1\/2{--tw-translate-x:-50%}.-translate-x-1\/2,.-translate-y-1\/2{transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.-translate-y-1\/2{--tw-translate-y:-50%}.-rotate-90{--tw-rotate:-90deg;transform:translate(var(--tw-translate-x),var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y))}.select-none{-webkit-user-select:none;-moz-user-select:none;user-select:none}.resize{resize:both}.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.flex-wrap{flex-wrap:wrap}.place-items-center{place-items:center}.items-start{align-items:flex-start}.items-center{align-items:center}.justify-end{justify-content:flex-end}.justify-center{justify-content:center}.justify-between{justify-content:space-between}.justify-items-center{justify-items:center}.gap-1{gap:.25rem}.gap-1\.5{gap:.375rem}.gap-2{gap:.5rem}.gap-3{gap:.75rem}.gap-4{gap:1rem}.gap-5{gap:1.25rem}.justify-self-start{justify-self:start}.overflow-auto{overflow:auto}.overflow-x-auto{overflow-x:auto}.whitespace-nowrap{white-space:nowrap}.break-words{overflow-wrap:break-word}.rounded-2xl{border-radius:1rem}.rounded-full{border-radius:9999px}.rounded-lg{border-radius:.5rem}.rounded-md{border-radius:.375rem}.rounded-sm{border-radius:.125rem}.rounded-xl{border-radius:.75rem}.border{border-width:1px}.border-b{border-bottom-width:1px}.border-b-2{border-bottom-width:2px}.border-t{border-top-width:1px}.border-dashed{border-style:dashed}.border-acc{--tw-border-opacity:1;border-color:rgb(61 220 132/var(--tw-border-opacity,1))}.border-acc\/60{border-color:rgba(61,220,132,.6)}.border-bad\/60{border-color:rgba(240,122,98,.6)}.border-info\/40{border-color:rgba(95,180,240,.4)}.border-info\/60{border-color:rgba(95,180,240,.6)}.border-line{--tw-border-opacity:1;border-color:rgb(38 55 48/var(--tw-border-opacity,1))}.border-line\/60{border-color:rgba(38,55,48,.6)}.border-transparent{border-color:transparent}.border-warn\/50{border-color:rgba(240,180,76,.5)}.bg-acc{--tw-bg-opacity:1;background-color:rgb(61 220 132/var(--tw-bg-opacity,1))}.bg-black\/70{background-color:rgba(0,0,0,.7)}.bg-canvas{--tw-bg-opacity:1;background-color:rgb(10 15 13/var(--tw-bg-opacity,1))}.bg-current{background-color:currentColor}.bg-line{--tw-bg-opacity:1;background-color:rgb(38 55 48/var(--tw-bg-opacity,1))}.bg-panel{--tw-bg-opacity:1;background-color:rgb(17 26 22/var(--tw-bg-opacity,1))}.bg-panel\/40{background-color:rgba(17,26,22,.4)}.bg-raised{--tw-bg-opacity:1;background-color:rgb(23 35 29/var(--tw-bg-opacity,1))}.bg-transparent{background-color:transparent}.bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity,1))}.p-1{padding:.25rem}.p-10{padding:2.5rem}.p-2{padding:.5rem}.p-2\.5{padding:.625rem}.p-3{padding:.75rem}.p-4{padding:1rem}.p-5{padding:1.25rem}.p-6{padding:1.5rem}.px-2{padding-left:.5rem;padding-right:.5rem}.px-2\.5{padding-left:.625rem;padding-right:.625rem}.px-3{padding-left:.75rem;padding-right:.75rem}.px-4{padding-left:1rem;padding-right:1rem}.py-0\.5{padding-top:.125rem;padding-bottom:.125rem}.py-1{padding-top:.25rem;padding-bottom:.25rem}.py-1\.5{padding-top:.375rem;padding-bottom:.375rem}.py-2{padding-top:.5rem;padding-bottom:.5rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}.pb-1{padding-bottom:.25rem}.pl-10{padding-left:2.5rem}.pt-1{padding-top:.25rem}.pt-3{padding-top:.75rem}.text-left{text-align:left}.text-center{text-align:center}.text-2xl{font-size:1.5rem;line-height:2rem}.text-\[13px\]{font-size:13px}.text-base{font-size:1rem;line-height:1.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}.text-xl{font-size:1.25rem;line-height:1.75rem}.text-xs{font-size:.75rem;line-height:1rem}.font-bold{font-weight:700}.font-extrabold{font-weight:800}.font-semibold{font-weight:600}.uppercase{text-transform:uppercase}.leading-relaxed{line-height:1.625}.tracking-tight{letter-spacing:-.025em}.tracking-wider{letter-spacing:.05em}.text-acc{--tw-text-opacity:1;color:rgb(61 220 132/var(--tw-text-opacity,1))}.text-acc-ink{--tw-text-opacity:1;color:rgb(6 36 15/var(--tw-text-opacity,1))}.text-bad{--tw-text-opacity:1;color:rgb(240 122 98/var(--tw-text-opacity,1))}.text-faint{--tw-text-opacity:1;color:rgb(93 112 106/var(--tw-text-opacity,1))}.text-good{--tw-text-opacity:1;color:rgb(61 220 132/var(--tw-text-opacity,1))}.text-info{--tw-text-opacity:1;color:rgb(95 180 240/var(--tw-text-opacity,1))}.text-ink{--tw-text-opacity:1;color:rgb(226 235 230/var(--tw-text-opacity,1))}.text-mute{--tw-text-opacity:1;color:rgb(143 163 154/var(--tw-text-opacity,1))}.text-warn{--tw-text-opacity:1;color:rgb(240 180 76/var(--tw-text-opacity,1))}.underline{text-decoration-line:underline}.opacity-40{opacity:.4}.shadow-2xl{--tw-shadow:0 25px 50px -12px rgba(0,0,0,.25);--tw-shadow-colored:0 25px 50px -12px var(--tw-shadow-color);box-shadow:var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--tw-shadow)}.outline{outline-style:solid}.filter{filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.transition{transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,-webkit-backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter;transition-property:color,background-color,border-color,text-decoration-color,fill,stroke,opacity,box-shadow,transform,filter,backdrop-filter,-webkit-backdrop-filter;transition-timing-function:cubic-bezier(.4,0,.2,1);transition-duration:.15s}.placeholder\:text-faint::-moz-placeholder{--tw-text-opacity:1;color:rgb(93 112 106/var(--tw-text-opacity,1))}.placeholder\:text-faint::placeholder{--tw-text-opacity:1;color:rgb(93 112 106/var(--tw-text-opacity,1))}.hover\:border-bad:hover{--tw-border-opacity:1;border-color:rgb(240 122 98/var(--tw-border-opacity,1))}.hover\:border-line:hover{--tw-border-opacity:1;border-color:rgb(38 55 48/var(--tw-border-opacity,1))}.hover\:bg-line:hover{--tw-bg-opacity:1;background-color:rgb(38 55 48/var(--tw-bg-opacity,1))}.hover\:bg-raised:hover{--tw-bg-opacity:1;background-color:rgb(23 35 29/var(--tw-bg-opacity,1))}.hover\:text-bad:hover{--tw-text-opacity:1;color:rgb(240 122 98/var(--tw-text-opacity,1))}.hover\:text-ink:hover{--tw-text-opacity:1;color:rgb(226 235 230/var(--tw-text-opacity,1))}.hover\:brightness-110:hover{--tw-brightness:brightness(1.1);filter:var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow)}.focus\:border-acc:focus{--tw-border-opacity:1;border-color:rgb(61 220 132/var(--tw-border-opacity,1))}.focus\:outline-none:focus{outline:2px solid transparent;outline-offset:2px}.disabled\:cursor-not-allowed:disabled{cursor:not-allowed}.disabled\:opacity-40:disabled{opacity:.4}@media (min-width:640px){.sm\:inline-flex{display:inline-flex}.sm\:grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.sm\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}@media (min-width:1024px){.lg\:block{display:block}.lg\:grid{display:grid}.lg\:hidden{display:none}.lg\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(0\2c 1\.4fr\)\]{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}}
+/* tailwind:end */</style>
+<style>
+/* Diseño: tema oscuro único (pedido), móvil primero. En pantallas grandes, lista a la izquierda y detalle a la derecha. */
+:root { color-scheme: dark; }
+html, body { margin: 0; background: #0a0f0d; color: #e2ebe6; }
+body {
+  font: 15px/1.5 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-left: max(12px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+}
+#root { max-width: 80rem; margin: 0 auto; padding-block: 12px 40px; }
+.boot { color: #8fa39a; padding: 32px 4px; }
+:focus-visible { outline: 2px solid #3ddc84; outline-offset: 2px; }
+textarea { resize: vertical; }
+.code { font-family: "IBM Plex Mono", ui-monospace, Consolas, monospace; tab-size: 4; }
+.scroll-x { overflow-x: auto; }
+pre.wrap { white-space: pre-wrap; word-break: break-word; }
+[hidden] { display: none !important; }
+</style>
+<script>window.__bootErrors = []; window.addEventListener("error", function (e) { window.__bootErrors.push(String(e.message || e)); });</script>
+
+<div id="root"><p class="boot">Cargando el lanzador…</p></div>
+
+<script id="engine">
+/*
+ * ===================== MOTOR (sin interfaz) =====================
+ * Ideas tomadas de gestores de fragmentos de código de GitHub:
+ *  - massCode: etiquetas, búsqueda en todo el texto, respaldo en un archivo JSON.
+ *  - Pet CLI: sincronización con un Gist usando un token con permiso "gist", por fecha de cambio.
+ * Todo corre en el dispositivo. Esta app NO ejecuta scripts: los guarda, los audita,
+ * los descarga como archivo y comparte su enlace o su QR para pasarlos a otro equipo.
+ */
+(function (root) {
+  "use strict";
+
+  const CATEGORIES = ["Audio", "Resolución/Video", "Organizador de Comunidades", "Red", "Mantenimiento"];
+  const LANGS = {
+    pwsh: { id: "pwsh", label: "PowerShell 7", short: "PS 7", ext: ".ps1", eol: "\r\n", bom: true },
+    cmd: { id: "cmd", label: "CMD", short: "CMD", ext: ".bat", eol: "\r\n", bom: false },
+    bash: { id: "bash", label: "Bash", short: "Bash", ext: ".sh", eol: "\n", bom: false },
+    python: { id: "python", label: "Python", short: "Python", ext: ".py", eol: "\n", bom: false },
+  };
+  const INDEX_FILE = "gestor-scripts.json";
+
+  // ---------- Utilidades ----------
+  const fold = (s) => String(s == null ? "" : s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const str = (v, n) => (typeof v === "string" ? v.slice(0, n) : "");
+  const isObj = (x) => !!x && typeof x === "object" && !Array.isArray(x);
+  const slug = (s) => fold(s).replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 48) || "script";
+
+  // ---------- Modelo ----------
+  function sanitizeScript(s) {
+    if (!isObj(s) || typeof s.id !== "string" || !/^[A-Za-z0-9_-]{1,60}$/.test(s.id)) return null;
+    const out = {
+      id: s.id,
+      name: str(s.name, 120).trim() || "Script sin nombre",
+      category: CATEGORIES.includes(s.category) ? s.category : "Mantenimiento",
+      lang: LANGS[s.lang] ? s.lang : "pwsh",
+      tags: Array.isArray(s.tags) ? Array.from(new Set(s.tags.filter((t) => typeof t === "string").map((t) => t.trim().slice(0, 40)).filter(Boolean))).slice(0, 20) : [],
+      notes: str(s.notes, 4000),
+      code: str(s.code, 200000),
+      createdAt: Number(s.createdAt) || Date.now(),
+      updatedAt: Number(s.updatedAt) || Date.now(),
+    };
+    if (s.deleted === true) out.deleted = true;
+    return out;
+  }
+  const sanitizeList = (a) => (Array.isArray(a) ? a.map(sanitizeScript).filter(Boolean) : []);
+
+  // Une dos bibliotecas: por cada id gana el cambio más reciente (los borrados viajan como "tombstone").
+  function mergeLibraries(a, b) {
+    const map = new Map();
+    sanitizeList(a).concat(sanitizeList(b)).forEach((s) => {
+      const cur = map.get(s.id);
+      if (!cur || s.updatedAt >= cur.updatedAt) map.set(s.id, s);
+    });
+    return Array.from(map.values());
+  }
+  const live = (list) => list.filter((s) => !s.deleted);
+
+  function sanitizeGistMeta(g) {
+    if (!isObj(g) || typeof g.id !== "string" || !/^[0-9a-f]{20,40}$/i.test(g.id)) return null;
+    const files = {};
+    if (isObj(g.files)) Object.keys(g.files).forEach((k) => { if (typeof g.files[k] === "string" && /^[\w.() -]{1,120}$/.test(g.files[k])) files[k] = g.files[k]; });
+    return {
+      id: g.id,
+      owner: /^[A-Za-z0-9-]{1,39}$/.test(g.owner || "") ? g.owner : "",
+      files: files,
+      pushedAt: Number(g.pushedAt) || 0,
+      htmlUrl: typeof g.htmlUrl === "string" && g.htmlUrl.indexOf("https://gist.github.com/") === 0 ? g.htmlUrl : "",
+    };
+  }
+
+  const TEMPLATES = {
+    pwsh: "<#\n.SYNOPSIS\n    Qué problema resuelve este script.\n#>\n$ErrorActionPreference = 'Stop'\n\ntry {\n    Write-Host 'Revisando...' -ForegroundColor Cyan\n    Write-Host 'Listo.' -ForegroundColor Green\n}\ncatch {\n    Write-Error \"Falló: $($_.Exception.Message)\"\n}\n",
+    cmd: "@echo off\nchcp 65001 >nul\nsetlocal\nrem Qué problema resuelve este script.\n\necho Listo.\npause\n",
+    bash: "#!/usr/bin/env bash\nset -euo pipefail\n# Qué problema resuelve este script.\n\necho \"Listo.\"\n",
+    python: "\"\"\"Qué problema resuelve este script.\"\"\"\nimport sys\n\n\ndef main() -> int:\n    print(\"Listo.\")\n    return 0\n\n\nif __name__ == \"__main__\":\n    try:\n        sys.exit(main())\n    except Exception as error:\n        print(f\"Falló: {error}\", file=sys.stderr)\n        sys.exit(1)\n",
+  };
+  function newScript(lang) {
+    const now = Date.now();
+    return { id: newId(), name: "", category: "Mantenimiento", lang: LANGS[lang] ? lang : "pwsh", tags: [], notes: "", code: TEMPLATES[LANGS[lang] ? lang : "pwsh"], createdAt: now, updatedAt: now };
+  }
+
+  const SAMPLES = /* ejemplos:start */[{"id": "s_audiosrv", "name": "Reparar servicio de audio (Audiosrv)", "category": "Audio", "lang": "pwsh", "tags": ["audio", "sonido", "servicios", "Audiosrv", "windows"], "notes": "Cuando no hay sonido o el ícono de volumen tiene una X roja. Reinicia los servicios Audiosrv y AudioEndpointBuilder.", "code": "#Requires -RunAsAdministrator\n<#\n.SYNOPSIS\n    Repara el sonido de Windows reiniciando los servicios Audiosrv y AudioEndpointBuilder.\n.DESCRIPTION\n    Úsalo cuando aparece \"No hay dispositivos de salida de audio\" o el ícono de volumen tiene una X roja.\n    Revisa que los servicios no estén deshabilitados, los reinicia en orden y muestra su estado final.\n#>\n$ErrorActionPreference = 'Stop'\n\n# #Requires no siempre se aplica con \"irm | iex\": por eso también se verifica aquí.\n$esAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)\nif (-not $esAdmin) {\n    Write-Warning 'Abre PowerShell como administrador y vuelve a ejecutar el comando.'\n    return\n}\n\n$servicios = 'AudioEndpointBuilder', 'Audiosrv'\ntry {\n    foreach ($nombre in $servicios) {\n        $svc = Get-Service -Name $nombre\n        if ($svc.StartType -eq 'Disabled') {\n            Set-Service -Name $nombre -StartupType Automatic\n            Write-Host \"El inicio de $nombre estaba deshabilitado: ahora es Automático.\" -ForegroundColor Yellow\n        }\n    }\n    # Audiosrv depende de AudioEndpointBuilder: -Force detiene ambos y luego se inician en orden.\n    Restart-Service -Name AudioEndpointBuilder -Force\n    Start-Service -Name Audiosrv\n    Start-Sleep -Seconds 2\n    Get-Service -Name $servicios | Format-Table Name, Status, StartType -AutoSize | Out-Host\n    Write-Host 'Listo. Si sigue sin sonido, revisa el dispositivo predeterminado en Configuración > Sistema > Sonido.' -ForegroundColor Green\n}\ncatch {\n    Write-Error \"No se pudo reparar el audio: $($_.Exception.Message)\"\n}\n", "createdAt": 1760000000000, "updatedAt": 1760000000000}, {"id": "s_video", "name": "Cambiar resolución o reiniciar driver de video", "category": "Resolución/Video", "lang": "pwsh", "tags": ["pantalla", "resolucion", "driver", "gpu", "video"], "notes": "Pantalla en negro, resolución rara o el equipo se ve movido. Lista resoluciones y aplica la elegida, o reinicia el adaptador de video.", "code": "<#\n.SYNOPSIS\n    Cambia la resolución de la pantalla principal o reinicia el driver de video.\n.DESCRIPTION\n    Opción 1: lista las resoluciones que acepta el monitor y aplica la que elijas (no necesita administrador).\n    Opción 2: reinicia el adaptador de video con pnputil (necesita administrador; la pantalla parpadea unos segundos).\n    Atajo manual equivalente a la opción 2: Win + Ctrl + Shift + B.\n#>\n$ErrorActionPreference = 'Stop'\n\nif (-not ('Pantalla' -as [type])) {\n    Add-Type -TypeDefinition @'\nusing System;\nusing System.Runtime.InteropServices;\npublic static class Pantalla {\n    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]\n    public struct DEVMODE {\n        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmDeviceName;\n        public short dmSpecVersion; public short dmDriverVersion; public short dmSize; public short dmDriverExtra;\n        public int dmFields; public int dmPositionX; public int dmPositionY; public int dmDisplayOrientation; public int dmDisplayFixedOutput;\n        public short dmColor; public short dmDuplex; public short dmYResolution; public short dmTTOption; public short dmCollate;\n        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string dmFormName;\n        public short dmLogPixels; public int dmBitsPerPel; public int dmPelsWidth; public int dmPelsHeight;\n        public int dmDisplayFlags; public int dmDisplayFrequency; public int dmICMMethod; public int dmICMIntent;\n        public int dmMediaType; public int dmDitherType; public int dmReserved1; public int dmReserved2;\n        public int dmPanningWidth; public int dmPanningHeight;\n    }\n    [DllImport(\"user32.dll\", CharSet = CharSet.Unicode)]\n    public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);\n    [DllImport(\"user32.dll\", CharSet = CharSet.Unicode)]\n    public static extern int ChangeDisplaySettings(ref DEVMODE devMode, int flags);\n}\n'@\n}\n\nfunction New-Modo {\n    $m = New-Object Pantalla+DEVMODE\n    $m.dmSize = [int16][Runtime.InteropServices.Marshal]::SizeOf([type][Pantalla+DEVMODE])\n    return $m\n}\n\nfunction Get-ModosDisponibles {\n    $vistos = @{}\n    $lista = New-Object System.Collections.Generic.List[object]\n    $i = 0\n    $m = New-Modo\n    while ([Pantalla]::EnumDisplaySettings($null, $i, [ref]$m)) {\n        $res = '{0}x{1}' -f $m.dmPelsWidth, $m.dmPelsHeight\n        if ($m.dmBitsPerPel -ge 32 -and -not $vistos.ContainsKey($res)) {\n            $vistos[$res] = $true\n            $lista.Add([pscustomobject]@{ Ancho = $m.dmPelsWidth; Alto = $m.dmPelsHeight })\n        }\n        $i++\n    }\n    return $lista | Sort-Object -Property @{ Expression = { $_.Ancho * $_.Alto } } -Descending\n}\n\nfunction Set-Resolucion([int]$Ancho, [int]$Alto) {\n    $m = New-Modo\n    [void][Pantalla]::EnumDisplaySettings($null, -1, [ref]$m)   # -1 = configuración actual\n    $m.dmPelsWidth = $Ancho\n    $m.dmPelsHeight = $Alto\n    $m.dmFields = 0x00080000 -bor 0x00100000                  # DM_PELSWIDTH | DM_PELSHEIGHT\n    $prueba = [Pantalla]::ChangeDisplaySettings([ref]$m, 0x02)  # CDS_TEST: solo comprueba\n    if ($prueba -ne 0) { throw \"La pantalla no acepta ${Ancho}x$Alto (código $prueba).\" }\n    $resultado = [Pantalla]::ChangeDisplaySettings([ref]$m, 0x01)  # CDS_UPDATEREGISTRY: aplica y guarda\n    switch ($resultado) {\n        0 { Write-Host \"Resolución cambiada a ${Ancho}x$Alto.\" -ForegroundColor Green }\n        1 { Write-Host 'Cambio guardado: reinicia el equipo para aplicarlo.' -ForegroundColor Yellow }\n        default { throw \"Windows rechazó el cambio (código $resultado).\" }\n    }\n}\n\nfunction Restart-DriverVideo {\n    $esAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)\n    if (-not $esAdmin) {\n        Write-Warning 'Para reiniciar el driver abre PowerShell como administrador.'\n        return\n    }\n    $gpus = @(Get-PnpDevice -Class Display -PresentOnly | Where-Object Status -eq 'OK')\n    if ($gpus.Count -eq 0) {\n        Write-Warning 'No encontré adaptadores de video activos.'\n        return\n    }\n    foreach ($g in $gpus) {\n        Write-Host \"Reiniciando $($g.FriendlyName)...\" -ForegroundColor Cyan\n        pnputil /restart-device \"$($g.InstanceId)\" | Out-Null\n        if ($LASTEXITCODE -ne 0) {\n            # Windows anterior a 10 2004 no tiene /restart-device: se deshabilita y se vuelve a habilitar.\n            Disable-PnpDevice -InstanceId $g.InstanceId -Confirm:$false\n            Start-Sleep -Seconds 3\n            Enable-PnpDevice -InstanceId $g.InstanceId -Confirm:$false\n        }\n    }\n    Write-Host 'Driver de video reiniciado.' -ForegroundColor Green\n}\n\ntry {\n    $actual = New-Modo\n    [void][Pantalla]::EnumDisplaySettings($null, -1, [ref]$actual)\n    Write-Host (\"Resolución actual: {0}x{1} a {2} Hz\" -f $actual.dmPelsWidth, $actual.dmPelsHeight, $actual.dmDisplayFrequency)\n    Write-Host '1) Cambiar resolución'\n    Write-Host '2) Reiniciar driver de video (administrador)'\n    $opcion = Read-Host 'Elige 1 o 2'\n    switch ($opcion) {\n        '1' {\n            $modos = @(Get-ModosDisponibles | Select-Object -First 12)\n            for ($n = 0; $n -lt $modos.Count; $n++) { Write-Host (\"{0,2}) {1}x{2}\" -f ($n + 1), $modos[$n].Ancho, $modos[$n].Alto) }\n            $eleccion = Read-Host 'Número de la resolución'\n            $idx = 0\n            if (-not [int]::TryParse($eleccion, [ref]$idx) -or $idx -lt 1 -or $idx -gt $modos.Count) { throw 'Número inválido.' }\n            Set-Resolucion -Ancho $modos[$idx - 1].Ancho -Alto $modos[$idx - 1].Alto\n        }\n        '2' { Restart-DriverVideo }\n        default { Write-Host 'Sin cambios.' }\n    }\n}\ncatch {\n    Write-Error \"No se pudo completar: $($_.Exception.Message)\"\n}\n", "createdAt": 1760000000001, "updatedAt": 1760000000001}, {"id": "s_organizar", "name": "Organizar carpeta por tipo de archivo", "category": "Organizador de Comunidades", "lang": "pwsh", "tags": ["organizar", "descargas", "archivos", "orden", "carpetas"], "notes": "Carpeta de Descargas desordenada. Mueve cada archivo a subcarpetas (Imágenes, Documentos, Videos...). Muestra vista previa y pide confirmar.", "code": "<#\n.SYNOPSIS\n    Ordena una carpeta (por defecto, Descargas) moviendo cada archivo a una subcarpeta según su tipo.\n.DESCRIPTION\n    Primero muestra una vista previa y solo mueve si escribes SI. No entra a subcarpetas, no toca\n    archivos ocultos ni del sistema, y si ya existe un archivo con el mismo nombre agrega (1), (2)...\n#>\n$ErrorActionPreference = 'Stop'\n\nfunction Get-CarpetaDescargas {\n    $clave = 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders'\n    $guid = '{374DE290-123F-4565-9164-39C4925E467B}'\n    if (Test-Path -LiteralPath $clave) {\n        $valor = (Get-ItemProperty -LiteralPath $clave -Name $guid -ErrorAction SilentlyContinue).$guid\n        if ($valor) { return [Environment]::ExpandEnvironmentVariables($valor) }\n    }\n    return Join-Path ([Environment]::GetFolderPath('UserProfile')) 'Downloads'\n}\n\n$tipos = [ordered]@{\n    'Imagenes'     = '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.svg', '.ico'\n    'Documentos'   = '.pdf', '.doc', '.docx', '.txt', '.rtf', '.odt', '.xls', '.xlsx', '.csv', '.ppt', '.pptx'\n    'Videos'       = '.mp4', '.mkv', '.avi', '.mov', '.wmv', '.webm'\n    'Audio'        = '.mp3', '.wav', '.flac', '.m4a', '.ogg', '.aac'\n    'Comprimidos'  = '.zip', '.rar', '.7z', '.tar', '.gz', '.iso'\n    'Instaladores' = '.exe', '.msi', '.msix', '.appx', '.apk'\n    'Codigo'       = '.ps1', '.bat', '.cmd', '.py', '.sh', '.js', '.json', '.html', '.css', '.xml'\n}\n$destinoDe = @{}\nforeach ($t in $tipos.Keys) { foreach ($ext in $tipos[$t]) { $destinoDe[$ext] = $t } }\n\nfunction Get-RutaLibre([string]$Carpeta, [string]$Nombre) {\n    $ruta = Join-Path $Carpeta $Nombre\n    $base = [IO.Path]::GetFileNameWithoutExtension($Nombre)\n    $ext = [IO.Path]::GetExtension($Nombre)\n    $n = 1\n    while (Test-Path -LiteralPath $ruta) {\n        $ruta = Join-Path $Carpeta (\"{0} ({1}){2}\" -f $base, $n, $ext)\n        $n++\n    }\n    return $ruta\n}\n\ntry {\n    $porDefecto = Get-CarpetaDescargas\n    $entrada = Read-Host \"Carpeta a ordenar (Enter = $porDefecto)\"\n    $carpeta = if ([string]::IsNullOrWhiteSpace($entrada)) { $porDefecto } else { $entrada.Trim('\"', ' ') }\n    if (-not (Test-Path -LiteralPath $carpeta -PathType Container)) { throw \"No existe la carpeta: $carpeta\" }\n\n    $archivos = @(Get-ChildItem -LiteralPath $carpeta -File | Where-Object {\n        -not ($_.Attributes -band [IO.FileAttributes]::Hidden) -and -not ($_.Attributes -band [IO.FileAttributes]::System)\n    })\n    if ($archivos.Count -eq 0) { Write-Host 'No hay archivos para ordenar.'; return }\n\n    $plan = foreach ($a in $archivos) {\n        $tipo = $destinoDe[$a.Extension.ToLowerInvariant()]\n        if (-not $tipo) { $tipo = 'Otros' }\n        [pscustomobject]@{ Archivo = $a; Tipo = $tipo }\n    }\n    Write-Host \"`nVista previa en ${carpeta}:\" -ForegroundColor Cyan\n    $plan | Group-Object Tipo | Sort-Object Count -Descending | Format-Table @{ n = 'Carpeta'; e = { $_.Name } }, @{ n = 'Archivos'; e = { $_.Count } } -AutoSize | Out-Host\n\n    if ((Read-Host 'Escribe SI para mover los archivos') -ne 'SI') { Write-Host 'Cancelado: no se movió nada.'; return }\n\n    $movidos = 0\n    $fallidos = 0\n    foreach ($p in $plan) {\n        try {\n            $destino = Join-Path $carpeta $p.Tipo\n            if (-not (Test-Path -LiteralPath $destino)) { New-Item -ItemType Directory -Path $destino | Out-Null }\n            Move-Item -LiteralPath $p.Archivo.FullName -Destination (Get-RutaLibre $destino $p.Archivo.Name)\n            $movidos++\n        }\n        catch {\n            $fallidos++\n            Write-Warning \"No se movió $($p.Archivo.Name): $($_.Exception.Message)\"\n        }\n    }\n    Write-Host \"Listo: $movidos movidos, $fallidos con error (por ejemplo, archivos abiertos).\" -ForegroundColor Green\n}\ncatch {\n    Write-Error \"No se pudo ordenar la carpeta: $($_.Exception.Message)\"\n}\n", "createdAt": 1760000000002, "updatedAt": 1760000000002}]/* ejemplos:end */;
+
+  // ---------- Búsqueda aproximada (fuzzy) ----------
+  function withinOneEdit(a, b) {
+    if (a === b) return true;
+    const la = a.length, lb = b.length;
+    if (Math.abs(la - lb) > 1) return false;
+    let i = 0, j = 0, edits = 0;
+    while (i < la && j < lb) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++edits > 1) return false;
+      if (la > lb) i++; else if (lb > la) j++; else { i++; j++; }
+    }
+    return edits + (la - i) + (lb - j) <= 1;
+  }
+  function subsequence(token, text) {
+    let k = 0;
+    for (let i = 0; i < text.length && k < token.length; i++) if (text[i] === token[k]) k++;
+    return k === token.length;
+  }
+  function scoreScript(s, tokens) {
+    const name = fold(s.name), tags = s.tags.map(fold), cat = fold(s.category), notes = fold(s.notes), code = fold(s.code);
+    const words = (name + " " + tags.join(" ")).split(/[^a-z0-9]+/).filter(Boolean);
+    let total = 0;
+    for (const t of tokens) {
+      let best = 0;
+      if (name.includes(t)) best = Math.max(best, words.some((w) => w.indexOf(t) === 0) ? 14 : 10);
+      if (tags.some((x) => x.includes(t))) best = Math.max(best, 8);
+      if (cat.includes(t)) best = Math.max(best, 6);
+      if (notes.includes(t)) best = Math.max(best, 4);
+      if (t.length >= 4 && words.some((w) => withinOneEdit(w, t) || (w.length > t.length && withinOneEdit(w.slice(0, t.length), t)))) best = Math.max(best, 5);
+      if (code.includes(t)) best = Math.max(best, 2);
+      if (t.length >= 3 && subsequence(t, name.replace(/\s+/g, ""))) best = Math.max(best, 2);
+      if (!best) return 0;
+      total += best;
+    }
+    return total;
+  }
+  function search(list, query, filters) {
+    const f = filters || {};
+    const pool = live(list).filter((s) => (!f.category || s.category === f.category) && (!f.lang || s.lang === f.lang));
+    const tokens = fold(query).split(/\s+/).filter(Boolean);
+    if (!tokens.length) return pool.slice().sort((a, b) => b.updatedAt - a.updatedAt);
+    return pool.map((s) => ({ s: s, k: scoreScript(s, tokens) })).filter((x) => x.k > 0)
+      .sort((a, b) => b.k - a.k || b.s.updatedAt - a.s.updatedAt).map((x) => x.s);
+  }
+
+  // ---------- Archivos ----------
+  function fileName(s) { return slug(s.name) + "-" + s.id.slice(-5) + LANGS[s.lang].ext; }
+  function normalizedCode(s) {
+    const L = LANGS[s.lang];
+    let text = String(s.code || "").replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+    if (!text.endsWith("\n")) text += "\n";
+    return text.replace(/\n/g, L.eol);
+  }
+  const utf8 = (text) => new TextEncoder().encode(text);
+  function fileBytes(s) {
+    const body = utf8(normalizedCode(s));
+    if (!LANGS[s.lang].bom) return body;
+    // .ps1 con BOM (firma UTF-8): así Windows PowerShell 5.1 lee bien las tildes y la ñ.
+    const out = new Uint8Array(body.length + 3);
+    out.set([0xef, 0xbb, 0xbf]); out.set(body, 3);
+    return out;
+  }
+  function bytesToBase64(bytes) {
+    let bin = "";
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+
+  function rawUrl(meta, scriptId) {
+    if (!meta || !meta.owner || !meta.files[scriptId]) return "";
+    return "https://gist.githubusercontent.com/" + meta.owner + "/" + meta.id + "/raw/" + encodeURIComponent(meta.files[scriptId]);
+  }
+
+  // ---------- ZIP sin compresión (las descargas de claude.ai no admiten .ps1/.bat/.py/.sh sueltos) ----------
+  let CRC_TABLE = null;
+  function crc32(bytes) {
+    if (!CRC_TABLE) {
+      CRC_TABLE = new Uint32Array(256);
+      for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; CRC_TABLE[n] = c >>> 0; }
+    }
+    let crc = 0xffffffff;
+    for (let i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 255] ^ (crc >>> 8);
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+  function zipStore(files) {
+    const parts = [], central = [];
+    let offset = 0;
+    const d = new Date();
+    const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+    const dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+    for (const f of files) {
+      const name = utf8(f.name), data = f.bytes, crc = crc32(data);
+      const local = new DataView(new ArrayBuffer(30));
+      local.setUint32(0, 0x04034b50, true); local.setUint16(4, 20, true); local.setUint16(6, 0x0800, true);
+      local.setUint16(10, dosTime, true); local.setUint16(12, dosDate, true);
+      local.setUint32(14, crc, true); local.setUint32(18, data.length, true); local.setUint32(22, data.length, true);
+      local.setUint16(26, name.length, true);
+      parts.push(new Uint8Array(local.buffer), name, data);
+      const cen = new DataView(new ArrayBuffer(46));
+      cen.setUint32(0, 0x02014b50, true); cen.setUint16(4, 20, true); cen.setUint16(6, 20, true); cen.setUint16(8, 0x0800, true);
+      cen.setUint16(12, dosTime, true); cen.setUint16(14, dosDate, true);
+      cen.setUint32(16, crc, true); cen.setUint32(20, data.length, true); cen.setUint32(24, data.length, true);
+      cen.setUint16(28, name.length, true); cen.setUint32(42, offset, true);
+      central.push(new Uint8Array(cen.buffer), name);
+      offset += 30 + name.length + data.length;
+    }
+    const cenSize = central.reduce((n, p) => n + p.length, 0);
+    const end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+    end.setUint32(12, cenSize, true); end.setUint32(16, offset, true);
+    const all = parts.concat(central, [new Uint8Array(end.buffer)]);
+    const out = new Uint8Array(all.reduce((n, p) => n + p.length, 0));
+    let pos = 0;
+    all.forEach((p) => { out.set(p, pos); pos += p.length; });
+    return out;
+  }
+
+  // ---------- Auditor ----------
+  const ADMIN_PS =
+    "$esAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)\n" +
+    "if (-not $esAdmin) {\n    Write-Warning 'Abre PowerShell como administrador y vuelve a ejecutar.'\n    return\n}\n";
+  const ADMIN_CMD = "net session >nul 2>&1\nif %errorlevel% neq 0 (\n    echo Ejecuta este archivo como administrador: clic derecho, Ejecutar como administrador.\n    pause\n    exit /b 1\n)\n";
+  const PS_ADMIN_CMDS = /\b(Set-Service|Restart-Service|Stop-Service|Start-Service|New-Service|Remove-Service|Set-NetAdapter\w*|Restart-NetAdapter|Disable-NetAdapter|Enable-NetAdapter|Set-DnsClientServerAddress|Set-NetIPAddress|New-NetIPAddress|Disable-PnpDevice|Enable-PnpDevice|Set-MpPreference|Add-MpPreference|Enable-WindowsOptionalFeature|Disable-WindowsOptionalFeature|Repair-WindowsImage|Register-ScheduledTask|Set-TimeZone|Rename-Computer|Add-Computer|Clear-EventLog)\b|\b(sfc|dism|bcdedit|pnputil|netsh|w32tm|chkdsk|diskpart|wevtutil)(\.exe)?\b|HKLM:|HKEY_LOCAL_MACHINE|\bnet\s+(stop|start|user|localgroup)\b|\bsc(\.exe)?\s+(config|stop|start|delete)\b/i;
+  const CMD_ADMIN_CMDS = /\b(net\s+(stop|start|user|localgroup)|sc\s+(config|stop|start|delete)|reg\s+(add|delete)\s+HKLM|netsh|sfc|dism|bcdedit|pnputil|diskpart|chkdsk|w32tm|wevtutil)\b/i;
+  const SECRET = /(password|passwd|contrase(ñ|n)a|clave|token|api[_-]?key|secret)\s*[:=]\s*['"][^'"\s]{4,}['"]/i;
+  const hasHereString = (code) => /@['"]\s*\r?\n/.test(code);
+
+  function matchClose(s, open) {
+    const want = s[open] === "(" ? ")" : "]";
+    let depth = 0;
+    for (let i = open; i < s.length; i++) {
+      const c = s[i];
+      if (c === "'" || c === '"') { const e = s.indexOf(c, i + 1); if (e < 0) return -1; i = e; continue; }
+      if (c === "#" && s[i - 1] !== "<") { const e = s.indexOf("\n", i); if (e < 0) return -1; i = e; continue; }
+      if (c === s[open]) depth++;
+      else if (c === want && --depth === 0) return i;
+    }
+    return -1;
+  }
+  // Separa el encabezado de PowerShell (comentarios, #Requires, using, [CmdletBinding()], param(...)) del cuerpo.
+  function splitPsPrologue(code) {
+    const s = String(code || "");
+    let i = 0;
+    for (;;) {
+      while (i < s.length && /\s/.test(s[i])) i++;
+      const rest = s.slice(i, i + 40);
+      if (s.startsWith("<#", i)) { const e = s.indexOf("#>", i + 2); if (e < 0) break; i = e + 2; continue; }
+      if (s[i] === "#") { const e = s.indexOf("\n", i); i = e < 0 ? s.length : e + 1; continue; }
+      if (/^using\s+(namespace|module|assembly)\b/i.test(rest)) { const e = s.indexOf("\n", i); i = e < 0 ? s.length : e + 1; continue; }
+      if (/^\[CmdletBinding/i.test(rest)) { const e = matchClose(s, i); if (e < 0) break; i = e + 1; continue; }
+      if (/^param\s*\(/i.test(rest)) { const e = matchClose(s, s.indexOf("(", i)); if (e < 0) break; i = e + 1; continue; }
+      break;
+    }
+    const cut = i >= s.length ? s.length : s.lastIndexOf("\n", i - 1) + 1;
+    return { head: s.slice(0, cut), body: s.slice(cut) };
+  }
+  const ensureNl = (s) => (s && !s.endsWith("\n") ? s + "\n" : s);
+
+  const FIXES = {
+    psAdmin: (code) => { const p = splitPsPrologue(code); return ensureNl(p.head) + ADMIN_PS + "\n" + p.body.replace(/^\n+/, ""); },
+    psRequires: (code) => "#Requires -RunAsAdministrator\n" + code,
+    psStop: (code) => { const p = splitPsPrologue(code); return ensureNl(p.head) + "$ErrorActionPreference = 'Stop'\n\n" + p.body.replace(/^\n+/, ""); },
+    psTry: (code) => {
+      const p = splitPsPrologue(code);
+      const body = p.body.replace(/\s+$/, "").split("\n").map((l) => (l.trim() ? "    " + l : l)).join("\n");
+      return ensureNl(p.head) + "try {\n" + body + "\n}\ncatch {\n    Write-Error \"Falló: $($_.Exception.Message)\"\n}\n";
+    },
+    cmdEcho: (code) => "@echo off\n" + code,
+    cmdAdmin: (code) => { const m = /^@echo off\s*\r?\n/i.exec(code); return m ? m[0] + ADMIN_CMD + code.slice(m[0].length) : "@echo off\n" + ADMIN_CMD + code; },
+    cmdChcp: (code) => { const m = /^@echo off\s*\r?\n/i.exec(code); return m ? m[0] + "chcp 65001 >nul\n" + code.slice(m[0].length) : "chcp 65001 >nul\n" + code; },
+    bashShebang: (code) => "#!/usr/bin/env bash\n" + code,
+    bashStrict: (code) => { const m = /^#!.*\n/.exec(code); return m ? m[0] + "set -euo pipefail\n" + code.slice(m[0].length) : "set -euo pipefail\n" + code; },
+  };
+  const applyFix = (code, fixId) => (FIXES[fixId] ? FIXES[fixId](String(code || "")) : code);
+
+  const PATH_HINTS = [
+    [/[a-z]:\\users\\[^\\'"\s]+\\desktop/i, "[Environment]::GetFolderPath('Desktop')", "%USERPROFILE%\\Desktop", "Path.home() / 'Desktop'"],
+    [/[a-z]:\\users\\[^\\'"\s]+\\appdata\\local\\temp/i, "$env:TEMP", "%TEMP%", "tempfile.gettempdir()"],
+    [/[a-z]:\\users\\[^\\'"\s]+\\appdata\\local/i, "$env:LOCALAPPDATA", "%LOCALAPPDATA%", "os.environ['LOCALAPPDATA']"],
+    [/[a-z]:\\users\\[^\\'"\s]+\\appdata\\roaming/i, "$env:APPDATA", "%APPDATA%", "os.environ['APPDATA']"],
+    [/[a-z]:\\users\\[^\\'"\s]+/i, "$env:USERPROFILE", "%USERPROFILE%", "Path.home()"],
+    [/c:\\windows/i, "$env:SystemRoot", "%SystemRoot%", "os.environ['SystemRoot']"],
+    [/c:\\program files \(x86\)/i, "${env:ProgramFiles(x86)}", "%ProgramFiles(x86)%", "os.environ['ProgramFiles(x86)']"],
+    [/c:\\program files/i, "$env:ProgramFiles", "%ProgramFiles%", "os.environ['ProgramFiles']"],
+    [/c:\\programdata/i, "$env:ProgramData", "%ProgramData%", "os.environ['ProgramData']"],
+  ];
+  function fixedPaths(code, col) {
+    const found = [];
+    PATH_HINTS.forEach((h) => {
+      const m = h[0].exec(code);
+      if (m && !found.some((f) => f.text.toLowerCase().indexOf(m[0].toLowerCase()) === 0 || m[0].toLowerCase().indexOf(f.text.toLowerCase()) === 0)) found.push({ text: m[0], use: h[col] });
+    });
+    return found;
+  }
+
+  function audit(s) {
+    const code = String(s.code || "");
+    const checks = [];
+    const add = (status, title, detail, fix) => checks.push({ status: status, title: title, detail: detail, fix: fix || null });
+    if (!code.trim()) { add("fail", "El script está vacío", "Escribe o pega el código en la pestaña «Código»."); return summarize(checks); }
+    if (SECRET.test(code)) add("fail", "Hay una contraseña o token escrito en el código", "Cualquiera con el enlace del Gist puede leerlo. Pídelo con Read-Host -AsSecureString o una variable de entorno.");
+
+    if (s.lang === "pwsh") {
+      const needsAdmin = PS_ADMIN_CMDS.test(code);
+      const hasRequires = /#requires\s+-runasadministrator/i.test(code);
+      const hasCheck = /IsInRole\s*\(\s*\[Security\.Principal\.WindowsBuiltInRole\]::Administrator\s*\)|IsInRole\s*\(\s*['"]Administrators?['"]\s*\)/i.test(code);
+      if (needsAdmin && !hasRequires && !hasCheck) add("fail", "Falta pedir permisos de administrador", "Usa comandos que necesitan administrador (servicios, drivers, red o HKLM). Sin la verificación falla a mitad de camino.", { id: "psAdmin", label: "Agregar verificación de administrador" });
+      else if (hasRequires && !hasCheck) add("warn", "#Requires -RunAsAdministrator no siempre basta", "Si el script no se guarda como archivo .ps1, #Requires puede no protegerlo. Agrega también una verificación explícita dentro del código.", { id: "psAdmin", label: "Agregar verificación explícita" });
+      else if (!needsAdmin && !hasRequires && !hasCheck) add("ok", "No parece necesitar administrador", "No encontré comandos que exijan permisos elevados.");
+      else if (hasCheck && !hasRequires) add("ok", "Verifica permisos de administrador", "Tiene la verificación explícita. Si lo guardas como archivo .ps1, puedes sumar #Requires -RunAsAdministrator.", { id: "psRequires", label: "Agregar #Requires" });
+      else add("ok", "Verifica permisos de administrador", "Tiene #Requires y la verificación explícita.");
+
+      const hasTry = /\btry\s*\{[\s\S]*\}\s*catch\b/i.test(code);
+      const hasStop = /\$ErrorActionPreference\s*=\s*['"]Stop['"]|-ErrorAction\s+Stop|-ea\s+Stop/i.test(code);
+      if (!hasTry) add("fail", "Sin manejo de errores (try/catch)", hasHereString(code) ? "Envuélvelo en try/catch a mano: tiene un here-string (@' '@) que no se puede sangrar automáticamente." : "Si un paso falla, el técnico no se entera de qué pasó.", hasHereString(code) ? null : { id: "psTry", label: "Envolver en try/catch" });
+      else if (!hasStop) add("warn", "try/catch sin $ErrorActionPreference = 'Stop'", "catch solo atrapa errores que detienen la ejecución; muchos cmdlets solo avisan y siguen.", { id: "psStop", label: "Agregar $ErrorActionPreference = 'Stop'" });
+      else add("ok", "Maneja errores", "Tiene try/catch y los errores detienen la ejecución.");
+
+      const paths = fixedPaths(code, 1);
+      if (paths.length) add(paths.some((p) => /users/i.test(p.text)) ? "fail" : "warn", "Rutas fijas", "Cámbialas por rutas dinámicas: " + paths.map((p) => p.text + " → " + p.use).join("; ") + ". Ojo: con comillas simples $env no se expande; usa comillas dobles o Join-Path.");
+      else if (/\$env:\w+|\[Environment\]::GetFolderPath|\$HOME\b/i.test(code)) add("ok", "Usa rutas dinámicas", "Funciona en cualquier usuario y equipo.");
+      else add("ok", "Sin rutas fijas", "No encontré rutas escritas a mano.");
+
+      if (/\bRemove-Item\b[^\n]*-Recurse|\bFormat-Volume\b|\bClear-Disk\b|\bRemove-Partition\b|\bStop-Computer\b|\bRestart-Computer\b/i.test(code) && !/-WhatIf|-Confirm(?!:\$false)|Read-Host/i.test(code))
+        add("warn", "Acción irreversible sin confirmación", "Borra datos o apaga el equipo sin preguntar. Agrega una confirmación con Read-Host o prueba antes con -WhatIf.");
+      const ps7 = [];
+      if (/\?\?=?/.test(code)) ps7.push("?? / ??=");
+      if (/[\w)\]"']\s*(&&|\|\|)\s*[\w$&('"]/.test(code)) ps7.push("&& / ||");
+      if (/ForEach-Object\s+-Parallel/i.test(code)) ps7.push("ForEach-Object -Parallel");
+      if (ps7.length) add("info", "Solo funciona en PowerShell 7", "Usa " + ps7.join(", ") + ". En un PC con solo Windows PowerShell 5.1 fallará: ejecútalo con pwsh o cambia esa sintaxis.");
+      else add("ok", "Compatible con PowerShell 5.1", "No encontré sintaxis exclusiva de PowerShell 7; sirve en PCs sin pwsh.");
+    }
+
+    if (s.lang === "cmd") {
+      if (!/^\s*@echo off/i.test(code)) add("warn", "Falta @echo off", "Sin esa línea la consola muestra cada comando y confunde al usuario.", { id: "cmdEcho", label: "Agregar @echo off" });
+      const needsAdmin = CMD_ADMIN_CMDS.test(code);
+      const hasCheck = /net session\s*>\s*nul|fltmc\s*>\s*nul|openfiles\s*>\s*nul/i.test(code);
+      if (needsAdmin && !hasCheck) add("fail", "Falta pedir permisos de administrador", "Usa comandos que necesitan administrador. Agrega la verificación con net session.", { id: "cmdAdmin", label: "Agregar verificación de administrador" });
+      else add("ok", needsAdmin ? "Verifica permisos de administrador" : "No parece necesitar administrador", needsAdmin ? "Tiene la verificación con net session." : "No encontré comandos que exijan permisos elevados.");
+      if (/errorlevel|\|\||&&/i.test(code)) add("ok", "Revisa errores", "Comprueba %errorlevel% o encadena con && / ||.");
+      else add("warn", "No revisa errores", "Tras los pasos importantes agrega: if %errorlevel% neq 0 echo Falló el paso & pause & exit /b 1");
+      const paths = fixedPaths(code, 2);
+      if (paths.length) add("fail", "Rutas fijas", "Cámbialas por: " + paths.map((p) => p.text + " → " + p.use).join("; ") + ".");
+      else add("ok", "Sin rutas fijas", "No encontré rutas escritas a mano.");
+      if (/[^\x00-\x7f]/.test(code) && !/chcp\s+65001/i.test(code)) add("warn", "Tiene tildes o ñ sin chcp 65001", "La consola puede mostrar caracteres raros.", { id: "cmdChcp", label: "Agregar chcp 65001" });
+    }
+
+    if (s.lang === "python") {
+      if (/\btry\s*:/.test(code) && /\bexcept\b/.test(code)) add("ok", "Maneja errores", "Tiene try/except.");
+      else add("fail", "Sin manejo de errores (try/except)", "Envuelve la parte principal en try/except y muestra el error en español.");
+      if (!/if\s+__name__\s*==\s*['"]__main__['"]/.test(code)) add("info", "Sin bloque if __name__ == \"__main__\"", "Recomendado para poder importar el archivo sin que se ejecute solo.");
+      const paths = fixedPaths(code.replace(/\\\\/g, "\\"), 3);
+      if (paths.length || /\/home\/\w+|\/Users\/\w+/.test(code)) add("fail", "Rutas fijas", "Usa rutas dinámicas: " + (paths.map((p) => p.text + " → " + p.use).join("; ") || "Path.home() en lugar de /home/usuario") + ".");
+      else add("ok", "Sin rutas fijas", "No encontré rutas escritas a mano.");
+      if (/HKEY_LOCAL_MACHINE|winreg\.HKEY_LOCAL_MACHINE|["'](sc|net|netsh|sfc|dism)["']/i.test(code) && !/IsUserAnAdmin/.test(code))
+        add("warn", "Puede necesitar administrador", "Comprueba ctypes.windll.shell32.IsUserAnAdmin() al inicio y avisa si no lo es.");
+    }
+
+    if (s.lang === "bash") {
+      if (!/^#!/.test(code)) add("warn", "Falta la línea #! (shebang)", "Indica con qué intérprete se ejecuta.", { id: "bashShebang", label: "Agregar #!/usr/bin/env bash" });
+      if (!/set\s+-[a-z]*e[a-z]*\b|set\s+-o\s+errexit/.test(code)) add("warn", "Sin set -euo pipefail", "Sin esto, el script sigue aunque un comando falle.", { id: "bashStrict", label: "Agregar set -euo pipefail" });
+      else add("ok", "Se detiene ante errores", "Tiene set -e.");
+      if (/\/home\/\w+|\/Users\/\w+/.test(code)) add("fail", "Rutas fijas", "Usa $HOME en lugar de /home/usuario.");
+      else add("ok", "Sin rutas fijas", "No encontré rutas escritas a mano.");
+    }
+    return summarize(checks);
+  }
+  function summarize(checks) {
+    const scored = checks.filter((c) => c.status !== "info");
+    const pts = scored.reduce((n, c) => n + (c.status === "ok" ? 1 : c.status === "warn" ? 0.5 : 0), 0);
+    return { checks: checks, score: scored.length ? Math.round((100 * pts) / scored.length) : 100 };
+  }
+
+  function searchLinks(s) {
+    const terms = [s.name].concat(s.tags.slice(0, 3)).join(" ").replace(/\s+/g, " ").trim();
+    const lang = LANGS[s.lang].label.replace(" 7", "");
+    const q = encodeURIComponent(terms + " " + lang);
+    return [
+      { label: "GitHub: repositorios", url: "https://github.com/search?q=" + q + "&type=repositories" },
+      { label: "YouTube: tutoriales", url: "https://www.youtube.com/results?search_query=" + encodeURIComponent(terms + " " + lang + " tutorial") },
+      { label: "Microsoft Learn", url: "https://learn.microsoft.com/es-es/search/?terms=" + q },
+    ];
+  }
+
+  // ---------- GitHub Gists (API REST) ----------
+  class GistError extends Error { constructor(code, message) { super(message); this.code = code; } }
+  async function gh(token, method, path, body) {
+    const headers = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+    if (token) headers.Authorization = "Bearer " + token;
+    if (body) headers["Content-Type"] = "application/json";
+    let res;
+    try {
+      res = await fetch("https://api.github.com" + path, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+    } catch (e) {
+      throw new GistError("network", "No pude conectar con GitHub. Dentro de claude.ai el visor bloquea esa conexión: usa la versión para PC (el archivo .html abierto en Chrome). Si ya la usas, revisa tu internet.");
+    }
+    if (res.ok) return res.status === 204 ? null : res.json();
+    let msg = "";
+    try { msg = (await res.json()).message || ""; } catch (e) { msg = ""; }
+    if (res.status === 401) throw new GistError("auth", "GitHub rechazó el token: está mal copiado, vencido o revocado.");
+    if (res.status === 403 && res.headers.get("x-ratelimit-remaining") === "0") throw new GistError("rate", "GitHub limitó las peticiones por ahora. Espera unos minutos.");
+    if (res.status === 403) throw new GistError("forbidden", "El token no tiene el permiso «gist». Crea un token clásico (classic) con ese permiso.");
+    if (res.status === 404) throw new GistError("notfound", "No encontré ese Gist, o el token no tiene permiso para verlo.");
+    if (res.status === 422) throw new GistError("invalid", "GitHub no aceptó los datos: " + msg);
+    throw new GistError("http", "GitHub respondió " + res.status + (msg ? ": " + msg : "") + ".");
+  }
+
+  function exportPayload(scripts, gistFiles) {
+    return { app: "Lanzador de Scripts", version: 1, exportedAt: new Date().toISOString(), scripts: sanitizeList(scripts), gistFiles: gistFiles || {} };
+  }
+  function parsePayload(text) {
+    let data;
+    try { data = JSON.parse(text); } catch (e) { throw new GistError("invalid", "El archivo no es un JSON válido."); }
+    if (!isObj(data) || !Array.isArray(data.scripts)) throw new GistError("invalid", "El JSON no es un respaldo del Lanzador de Scripts.");
+    return { scripts: sanitizeList(data.scripts), gistFiles: isObj(data.gistFiles) ? data.gistFiles : {} };
+  }
+  async function readRemote(token, gistId) {
+    const g = await gh(token, "GET", "/gists/" + encodeURIComponent(gistId));
+    const f = g.files && g.files[INDEX_FILE];
+    if (!f) throw new GistError("format", "Ese Gist no tiene " + INDEX_FILE + ": no lo creó esta app.");
+    let content = f.content;
+    if (f.truncated && f.raw_url) {
+      try { content = await (await fetch(f.raw_url, { cache: "no-store" })).text(); }
+      catch (e) { throw new GistError("network", "No pude descargar el respaldo completo del Gist."); }
+    }
+    const parsed = parsePayload(content);
+    return { gist: g, scripts: parsed.scripts, gistFiles: parsed.gistFiles, existing: Object.keys(g.files || {}) };
+  }
+
+  // Descargar (Pull): une lo que hay en el Gist con lo local; gana el cambio más reciente.
+  async function pullGist(token, meta, localScripts) {
+    if (!meta || !meta.id) throw new GistError("nogist", "Primero sube tu biblioteca, o pega el ID de un Gist existente en Ajustes.");
+    const r = await readRemote(token, meta.id);
+    const merged = mergeLibraries(localScripts, r.scripts);
+    const files = Object.assign({}, r.gistFiles, meta.files || {});
+    return { scripts: merged, meta: sanitizeGistMeta({ id: r.gist.id, owner: r.gist.owner && r.gist.owner.login, files: files, pushedAt: meta.pushedAt, htmlUrl: r.gist.html_url }) };
+  }
+  // Subir (Push): primero une con lo remoto para no pisar cambios de otro equipo; luego sube todo.
+  async function pushGist(token, meta, localScripts) {
+    if (!token) throw new GistError("auth", "Pega tu token de GitHub en Ajustes para subir.");
+    let scripts = sanitizeList(localScripts), existing = [], files = Object.assign({}, meta && meta.files);
+    if (meta && meta.id) {
+      const r = await readRemote(token, meta.id);
+      scripts = mergeLibraries(scripts, r.scripts);
+      existing = r.existing;
+      files = Object.assign({}, r.gistFiles, files);
+    }
+    const payloadFiles = {};
+    const used = new Set();
+    const alive = live(scripts);
+    alive.forEach((s) => {
+      let name = files[s.id];
+      if (!name || !name.endsWith(LANGS[s.lang].ext)) name = fileName(s);
+      while (used.has(name)) name = name.replace(/(\.\w+)$/, "-" + Math.random().toString(36).slice(2, 5) + "$1");
+      used.add(name);
+      if (files[s.id] && files[s.id] !== name && existing.includes(files[s.id])) payloadFiles[files[s.id]] = null;
+      files[s.id] = name;
+      const content = normalizedCode(s).replace(/\r\n/g, "\n");
+      payloadFiles[name] = { content: content.trim() ? content : "# (vacío)\n" };
+    });
+    Object.keys(files).forEach((id) => {
+      if (!alive.some((s) => s.id === id)) { if (existing.includes(files[id]) && !used.has(files[id])) payloadFiles[files[id]] = null; delete files[id]; }
+    });
+    payloadFiles[INDEX_FILE] = { content: JSON.stringify(exportPayload(scripts, files), null, 1) };
+    const body = { description: "Lanzador de Scripts: biblioteca de soporte técnico", files: payloadFiles };
+    let g;
+    if (meta && meta.id) g = await gh(token, "PATCH", "/gists/" + encodeURIComponent(meta.id), body);
+    else {
+      Object.keys(payloadFiles).forEach((k) => { if (payloadFiles[k] === null) delete payloadFiles[k]; });
+      g = await gh(token, "POST", "/gists", Object.assign({ public: false }, body));
+    }
+    return { scripts: scripts, meta: sanitizeGistMeta({ id: g.id, owner: g.owner && g.owner.login, files: files, pushedAt: Date.now(), htmlUrl: g.html_url }) };
+  }
+
+  root.GestorEngine = {
+    CATEGORIES, LANGS, SAMPLES, INDEX_FILE, TEMPLATES,
+    fold, newId, sanitizeScript, sanitizeList, mergeLibraries, live, sanitizeGistMeta, newScript,
+    search, fileName, normalizedCode, fileBytes, bytesToBase64, utf8, rawUrl, zipStore, crc32,
+    audit, applyFix, splitPsPrologue, searchLinks,
+    exportPayload, parsePayload, pullGist, pushGist, readRemote, GistError,
+  };
+})(typeof globalThis !== "undefined" ? globalThis : this);
+</script>
+
+<script id="app">
+// La arranca el cargador (al final del archivo) cuando React y htm están disponibles.
+window.__startApp = function () {
+  "use strict";
+  const rootEl = document.getElementById("root");
+  const { useState, useEffect, useMemo, useRef, useCallback } = React;
+  const html = htm.bind(React.createElement);
+  const G = window.GestorEngine;
+  const LKEY = "lanzador.v1", TKEY = "lanzador.v1.token";
+  const IN_CLAUDE = !!(window.claude && typeof window.claude.use === "function");
+  if (window.qrcode && window.qrcode.stringToBytesFuncs && window.qrcode.stringToBytesFuncs["UTF-8"]) window.qrcode.stringToBytes = window.qrcode.stringToBytesFuncs["UTF-8"];
+
+  // ---------- Almacenamiento local ----------
+  const LS = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  };
+  function loadLocal() {
+    const d = LS.get(LKEY, null);
+    if (d && Array.isArray(d.scripts)) return { scripts: G.mergeLibraries(d.scripts, []), gist: G.sanitizeGistMeta(d.gist) };
+    return { scripts: G.sanitizeList(G.SAMPLES), gist: null };
+  }
+
+  // ---------- Nube de Claude (capacidad db): datos privados de tu cuenta, celular y PC ----------
+  function useClaudeCloud(onRemote) {
+    const [state, setState] = useState({ status: IN_CLAUDE ? "conectando" : "local", detail: "" });
+    const colRef = useRef(null);
+    const queue = useRef(Promise.resolve());
+    const cb = useRef(onRemote); cb.current = onRemote;
+    useEffect(() => {
+      if (!IN_CLAUDE) return undefined;
+      let unsub = null, cancelled = false;
+      (async () => {
+        try {
+          const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+          const uid = user ? await user.id() : null;
+          if (cancelled) return;
+          if (!db || !uid) { setState({ status: "local", detail: "Inicia sesión en claude.ai para sincronizar entre celular y PC." }); return; }
+          const col = db.collection("data/users/" + uid);
+          colRef.current = col;
+          unsub = col.onSnapshot((snap) => {
+            const scripts = [], meta = {};
+            snap.docs.forEach((d) => {
+              if (!d.exists) return;
+              if (d.id === "meta") Object.assign(meta, d.data());
+              else scripts.push(d.data());
+            });
+            cb.current({ scripts: scripts, gist: G.sanitizeGistMeta(meta.gist) });
+            setState({ status: "sincronizado", detail: "" });
+          }, (e) => setState({ status: "error", detail: e && e.message ? e.message : "Se perdió la conexión con la nube de Claude." }));
+        } catch (e) {
+          if (!cancelled) setState({ status: "local", detail: "La nube de Claude no está disponible en esta vista." });
+        }
+      })();
+      return () => { cancelled = true; if (unsub) unsub(); };
+    }, []);
+    const write = useCallback((docId, data) => {
+      const col = colRef.current;
+      if (!col) return Promise.resolve();
+      queue.current = queue.current.then(() => col.doc(docId).set(data)).catch((e) => {
+        setState({ status: "error", detail: e && e.code === "quota_exceeded" ? "La nube de Claude está llena: borra scripts que no uses." : "No se pudo guardar en la nube de Claude." });
+      });
+      return queue.current;
+    }, []);
+    return [state, write];
+  }
+
+  // ---------- Portapapeles y descargas ----------
+  async function copyText(text) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        const ok = document.execCommand("copy"); ta.remove(); return ok;
+      } catch (e2) { return false; }
+    }
+  }
+  let downloadsP = null;
+  const getDownloads = () => (downloadsP = downloadsP || (IN_CLAUDE ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null)));
+  async function saveFile(filename, data, mime) {
+    const d = await getDownloads();
+    if (d) {
+      try { await d.save({ filename: filename, data: data }); return "Archivo guardado: " + filename; }
+      catch (e) {
+        if (e && e.code === "declined") return "Descarga cancelada.";
+        if (e && e.code === "rate_limited") return "Ya hay una descarga esperando tu confirmación.";
+        return "Aquí no se pudo descargar. Copia el código.";
+      }
+    }
+    try {
+      const url = URL.createObjectURL(new Blob([data], { type: mime || "application/octet-stream" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1500);
+      return "Descarga iniciada: " + filename;
+    } catch (e) { return "No se pudo descargar. Copia el código."; }
+  }
+  // En claude.ai solo se permiten ciertas extensiones: el script va dentro de un .zip con su extensión real.
+  async function downloadScript(s) {
+    const name = G.fileName(s), bytes = G.fileBytes(s);
+    const viaCapability = await getDownloads();
+    if (viaCapability) return saveFile(name.replace(/\.\w+$/, "") + ".zip", new Blob([G.zipStore([{ name: name, bytes: bytes }])]), "application/zip");
+    return saveFile(name, new Blob([bytes]), "text/plain");
+  }
+
+  // ---------- Piezas de interfaz ----------
+  function Icon({ name, size = 20, className = "" }) {
+    const C = window.LucideReact && window.LucideReact[name];
+    if (!C) return html`<span className=${"inline-block rounded-sm bg-current opacity-40 " + className} style=${{ width: size * 0.5, height: size * 0.5 }} aria-hidden="true"></span>`;
+    return html`<${C} size=${size} className=${className} aria-hidden="true" />`;
+  }
+  const BTN = {
+    primary: "bg-acc text-acc-ink border-acc hover:brightness-110",
+    ghost: "bg-raised text-ink border-line hover:bg-line",
+    danger: "bg-raised text-bad border-bad/60 hover:bg-line",
+    subtle: "bg-transparent text-mute border-transparent hover:bg-raised hover:text-ink",
+  };
+  function Btn({ kind = "ghost", icon, children, onClick, disabled, label, className = "", small, pressed, type = "button" }) {
+    return html`<button type=${type} onClick=${onClick} disabled=${disabled} aria-label=${label} title=${label} aria-pressed=${pressed}
+      className=${"inline-flex items-center justify-center gap-2 rounded-xl border font-semibold transition select-none disabled:opacity-40 disabled:cursor-not-allowed " +
+        (small ? "min-h-[40px] px-3 text-sm " : "min-h-[48px] px-4 ") + BTN[kind] + " " + className}>
+      ${icon && html`<${Icon} name=${icon} size=${small ? 18 : 20} />`}${children}
+    </button>`;
+  }
+  function ConfirmBtn({ onConfirm, children, icon = "Trash2", confirmText = "Toca otra vez para confirmar", small = true }) {
+    const [armed, setArmed] = useState(false);
+    useEffect(() => { if (!armed) return undefined; const t = setTimeout(() => setArmed(false), 4000); return () => clearTimeout(t); }, [armed]);
+    return html`<${Btn} kind="danger" icon=${icon} small=${small} onClick=${() => { if (armed) { setArmed(false); onConfirm(); } else setArmed(true); }}>${armed ? confirmText : children}<//>`;
+  }
+  const INPUT = "w-full min-h-[48px] rounded-xl border border-line bg-canvas px-3 py-2 text-ink placeholder:text-faint focus:border-acc focus:outline-none";
+  function Field({ id, label, children, hint }) {
+    return html`<div className="grid gap-1.5 min-w-0">
+      <label htmlFor=${id} className="text-xs font-bold uppercase tracking-wider text-mute">${label}</label>
+      ${children}
+      ${hint && html`<p className="m-0 text-xs text-faint">${hint}</p>`}
+    </div>`;
+  }
+  function Chip({ children, tone = "line" }) {
+    const tones = { line: "border-line text-mute", acc: "border-acc/60 text-acc", info: "border-info/60 text-info" };
+    return html`<span className=${"inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold " + tones[tone]}>${children}</span>`;
+  }
+  const LANG_TONE = { pwsh: "info", cmd: "line", bash: "acc", python: "acc" };
+  const CAT_ICON = { "Audio": "Volume2", "Resolución/Video": "Monitor", "Organizador de Comunidades": "Users", "Red": "Network", "Mantenimiento": "Wrench" };
+  const fmtDate = (ts) => new Date(ts).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  const ST = { ok: { c: "text-good", i: "CheckCircle2" }, warn: { c: "text-warn", i: "AlertTriangle" }, fail: { c: "text-bad", i: "XCircle" }, info: { c: "text-info", i: "Info" } };
+
+  // Código QR en SVG (fondo blanco obligatorio para que se pueda escanear).
+  function QR({ text }) {
+    const data = useMemo(() => {
+      if (!window.qrcode) return { error: "No se pudo cargar el generador de QR. Revisa tu conexión y recarga." };
+      try {
+        const q = window.qrcode(0, "M");
+        q.addData(text, "Byte");
+        q.make();
+        const n = q.getModuleCount();
+        let path = "";
+        for (let r = 0; r < n; r++) {
+          let c = 0;
+          while (c < n) {
+            if (!q.isDark(r, c)) { c++; continue; }
+            let w = 1;
+            while (c + w < n && q.isDark(r, c + w)) w++;
+            path += "M" + (c + 4) + " " + (r + 4) + "h" + w + "v1h-" + w + "z";
+            c += w;
+          }
+        }
+        return { n: n + 8, path: path };
+      } catch (e) {
+        return { error: "El texto es demasiado largo para un QR (" + new TextEncoder().encode(text).length + " bytes; el máximo ronda los 2.300). Usa el enlace del Gist, que es corto, o descarga el archivo." };
+      }
+    }, [text]);
+    if (data.error) return html`<p className="m-0 rounded-xl border border-warn/50 bg-raised p-3 text-sm text-warn">${data.error}</p>`;
+    return html`<div className="grid justify-items-center gap-2">
+      <svg viewBox=${"0 0 " + data.n + " " + data.n} className="w-full max-w-[300px] rounded-lg bg-white" role="img" aria-label="Código QR" shapeRendering="crispEdges">
+        <rect width=${data.n} height=${data.n} fill="#ffffff" />
+        <path d=${data.path} fill="#000000" />
+      </svg>
+      ${data.n - 8 > 61 && html`<p className="m-0 text-xs text-warn">QR denso: acerca bien la cámara.</p>`}
+    </div>`;
+  }
+  function QrModal({ title, text, onClose, notify }) {
+    return html`<div role="dialog" aria-modal="true" aria-label=${"QR de " + title} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick=${onClose}>
+      <div className="grid max-h-[90vh] w-full max-w-sm gap-3 overflow-auto rounded-2xl border border-line bg-panel p-4" onClick=${(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-2"><h3 className="m-0 text-base font-bold">${title}</h3>
+          <${Btn} kind="subtle" small icon="X" label="Cerrar" onClick=${onClose} /></div>
+        <${QR} text=${text} />
+        <pre className="wrap code m-0 max-h-24 overflow-auto rounded-xl border border-line bg-canvas p-2 text-xs text-mute">${text}</pre>
+        <${Btn} kind="ghost" small icon="Copy" onClick=${async () => notify((await copyText(text)) ? "Copiado." : "No se pudo copiar.")}>Copiar el texto del QR<//>
+      </div>
+    </div>`;
+  }
+
+  // ---------- Detalle: Compartir ----------
+  function ShareTab({ s, gist, notify, openQR }) {
+    const url = G.rawUrl(gist, s.id);
+    const stale = url && gist && s.updatedAt > gist.pushedAt + 1000;
+    const bytes = useMemo(() => G.utf8(G.normalizedCode(s)).length, [s.code, s.lang]);
+    return html`<div className="grid gap-5">
+      <section className="grid gap-3">
+        <h3 className="m-0 flex items-center gap-2 text-base font-bold"><${Icon} name="Download" className="text-acc" />Descargar el archivo</h3>
+        <p className="m-0 text-sm text-mute">Descarga <span className="code text-ink">${G.fileName(s)}</span> con su extensión real para ejecutarlo en el PC. Dentro de claude.ai llega en un <b>.zip</b> (abre el zip y dentro está el ${G.LANGS[s.lang].ext}); en la versión para PC baja directo.</p>
+        <div className="grid grid-cols-2 gap-2">
+          <${Btn} kind="primary" icon="Download" onClick=${async () => notify(await downloadScript(s))}>Descargar<//>
+          <${Btn} icon="Copy" onClick=${async () => notify((await copyText(G.normalizedCode(s).replace(/\r\n/g, "\n"))) ? "Código copiado." : "No se pudo copiar.")}>Copiar código<//>
+        </div>
+      </section>
+
+      <section className="grid gap-3">
+        <h3 className="m-0 flex items-center gap-2 text-base font-bold"><${Icon} name="QrCode" className="text-acc" />Pasar al otro PC</h3>
+        ${url ? html`<div className="grid gap-3">
+            ${stale && html`<p className="m-0 flex gap-2 rounded-xl border border-warn/50 bg-raised p-3 text-sm text-warn"><${Icon} name="AlertTriangle" size=${16} className="mt-0.5 shrink-0" />Cambiaste el script después de la última subida. Haz «Subir a la nube» en Ajustes para que el enlace tenga la versión nueva.</p>`}
+            <p className="m-0 text-sm text-mute">Enlace directo a tu Gist (archivo crudo). Ábrelo en el navegador del otro PC para ver y descargar el script. <b>Revisa siempre el código antes de ejecutarlo.</b></p>
+            <pre className="wrap code m-0 max-h-24 overflow-auto rounded-xl border border-line bg-canvas p-3 text-xs text-ink">${url}</pre>
+            <div className="grid grid-cols-2 gap-2">
+              <${Btn} kind="primary" icon="QrCode" onClick=${() => openQR("Enlace del script", url)}>Mostrar QR<//>
+              <${Btn} icon="Copy" onClick=${async () => notify((await copyText(url)) ? "Enlace copiado." : "No se pudo copiar.")}>Copiar enlace<//>
+            </div>
+            ${gist.htmlUrl && html`<a href=${gist.htmlUrl} target="_blank" rel="noopener" className="text-sm text-info underline">Ver el Gist completo en GitHub</a>`}
+          </div>`
+          : html`<div className="grid gap-3 rounded-2xl border border-dashed border-line p-4 text-sm text-mute">
+            <p className="m-0">Para generar un enlace y su QR, sincroniza tu biblioteca con un Gist de GitHub (en Ajustes). Mientras tanto, descarga el archivo y pásalo por USB, WhatsApp o tu nube.</p>
+            ${bytes <= 1800 ? html`<p className="m-0">O comparte el código como texto en un QR (el otro equipo lo lee y lo pega en un editor; no se ejecuta solo):</p>
+              <${Btn} icon="QrCode" onClick=${() => openQR("Código de " + (s.name || "script"), G.normalizedCode(s).replace(/\r\n/g, "\n"))}>QR con el código (texto)<//>`
+              : html`<p className="m-0 text-faint">El código es muy largo para un QR de texto (${bytes} bytes). Usa la descarga o sincroniza con Gist.</p>`}
+          </div>`}
+      </section>
+    </div>`;
+  }
+
+  // ---------- Detalle: Auditoría ----------
+  function AuditTab({ s, onApplyFix, notify }) {
+    const result = useMemo(() => G.audit(s), [s.code, s.lang]);
+    const links = G.searchLinks(s);
+    const color = result.score >= 75 ? "#3ddc84" : result.score >= 50 ? "#f0b44c" : "#f07a62";
+    return html`<div className="grid gap-4">
+      <div className="flex items-center gap-4 rounded-2xl border border-line bg-panel p-4">
+        <div className="relative grid h-16 w-16 shrink-0 place-items-center">
+          <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90"><circle cx="18" cy="18" r="15" fill="none" stroke="#1b2b25" strokeWidth="4" />
+            <circle cx="18" cy="18" r="15" fill="none" stroke=${color} strokeWidth="4" strokeLinecap="round" strokeDasharray=${2 * Math.PI * 15} strokeDashoffset=${2 * Math.PI * 15 * (1 - result.score / 100)} /></svg>
+          <span className="absolute code text-lg font-bold">${result.score}</span>
+        </div>
+        <div><p className="m-0 font-bold">Calidad del script</p><p className="m-0 text-sm text-mute">Revisa permisos, manejo de errores y rutas. No garantiza que funcione: pruébalo.</p></div>
+      </div>
+      <ul className="grid gap-2">
+        ${result.checks.map((c, i) => html`<li key=${i} className="grid gap-2 rounded-xl border border-line bg-panel p-3">
+          <div className="flex gap-2"><${Icon} name=${ST[c.status].i} size=${18} className=${ST[c.status].c + " mt-0.5 shrink-0"} />
+            <div className="min-w-0"><p className=${"m-0 font-semibold " + ST[c.status].c}>${c.title}</p><p className="m-0 text-sm text-mute">${c.detail}</p></div></div>
+          ${c.fix && html`<${Btn} small kind="ghost" icon="Wand2" className="justify-self-start" onClick=${() => { onApplyFix(c.fix.id); notify("Corregido: " + c.fix.label.toLowerCase() + ". Revísalo en «Código»."); }}>${c.fix.label}<//>`}
+        </li>`)}
+      </ul>
+      <section className="grid gap-2">
+        <h3 className="m-0 flex items-center gap-2 text-base font-bold"><${Icon} name="Search" className="text-acc" />Buscar soluciones</h3>
+        <div className="grid gap-2 sm:grid-cols-3">
+          ${links.map((l) => html`<a key=${l.url} href=${l.url} target="_blank" rel="noopener" className="flex min-h-[48px] items-center justify-center gap-2 rounded-xl border border-line bg-raised px-3 text-sm font-semibold hover:bg-line"><${Icon} name="ExternalLink" size=${16} />${l.label}</a>`)}
+        </div>
+      </section>
+    </div>`;
+  }
+
+  // ---------- Detalle: Código (editor + metadatos) ----------
+  function EditTab({ s, patch, notify }) {
+    const [tag, setTag] = useState("");
+    const addTag = () => { const t = tag.trim(); if (t && !s.tags.includes(t)) patch({ tags: s.tags.concat(t).slice(0, 20) }); setTag(""); };
+    return html`<div className="grid gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <${Field} id="f-name" label="Nombre">
+          <input id="f-name" type="text" value=${s.name} onChange=${(e) => patch({ name: e.target.value })} className=${INPUT} placeholder="Ej.: Reparar servicio de audio" />
+        <//>
+        <${Field} id="f-cat" label="Categoría">
+          <select id="f-cat" value=${s.category} onChange=${(e) => patch({ category: e.target.value })} className=${INPUT}>
+            ${G.CATEGORIES.map((c) => html`<option key=${c} value=${c}>${c}</option>`)}
+          </select>
+        <//>
+        <${Field} id="f-lang" label="Lenguaje">
+          <select id="f-lang" value=${s.lang} onChange=${(e) => patch({ lang: e.target.value })} className=${INPUT}>
+            ${Object.keys(G.LANGS).map((k) => html`<option key=${k} value=${k}>${G.LANGS[k].label} (${G.LANGS[k].ext})</option>`)}
+          </select>
+        <//>
+        <${Field} id="f-tag" label="Etiquetas (tags)">
+          <div className="flex gap-2"><input id="f-tag" type="text" value=${tag} onChange=${(e) => setTag(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }} className=${INPUT + " min-w-0 flex-1"} placeholder="Escribe y Enter" />
+            <${Btn} small icon="Plus" label="Agregar etiqueta" onClick=${addTag} /></div>
+          ${s.tags.length > 0 && html`<div className="flex flex-wrap gap-1.5 pt-1">${s.tags.map((t) => html`<button key=${t} type="button" onClick=${() => patch({ tags: s.tags.filter((x) => x !== t) })} className="inline-flex items-center gap-1 rounded-md border border-line bg-raised px-2 py-1 text-xs hover:border-bad hover:text-bad">${t}<${Icon} name="X" size=${12} /></button>`)}</div>`}
+        <//>
+      </div>
+      <${Field} id="f-notes" label="¿Qué problema resuelve? (notas)">
+        <textarea id="f-notes" rows="2" value=${s.notes} onChange=${(e) => patch({ notes: e.target.value })} className=${INPUT} placeholder="Ej.: cuando no hay sonido y el ícono de volumen tiene una X roja."></textarea>
+      <//>
+      <${Field} id="f-code" label=${"Código (" + G.LANGS[s.lang].label + ")"} hint=${"Al descargar y al subir al Gist se normaliza el fin de línea" + (G.LANGS[s.lang].bom ? " y se agrega la firma UTF-8 para que las tildes salgan bien en Windows." : ".")}>
+        <textarea id="f-code" rows="16" spellCheck="false" value=${s.code} onChange=${(e) => patch({ code: e.target.value })} className=${INPUT + " code min-h-[320px] text-[13px] leading-relaxed"}></textarea>
+      <//>
+    </div>`;
+  }
+
+  function Detail({ s, gist, tab, setTab, patch, applyFix, notify, openQR, onClose, onDelete }) {
+    const TABS = [["compartir", "Compartir", "Share2"], ["codigo", "Código", "Code2"], ["auditoria", "Auditoría", "ShieldCheck"]];
+    return html`<div className="grid gap-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2"><${Chip} tone=${LANG_TONE[s.lang]}>${G.LANGS[s.lang].short}<//><${Chip}>${s.category}<//></div>
+          <h2 className="m-0 mt-1 break-words text-xl font-bold">${s.name || "Script sin nombre"}</h2>
+          <p className="m-0 text-xs text-faint">Editado ${fmtDate(s.updatedAt)}</p>
+        </div>
+        <${Btn} kind="subtle" small icon="X" label="Cerrar" onClick=${onClose} className="lg:hidden" />
+      </div>
+      <div className="flex gap-1 overflow-x-auto border-b border-line">
+        ${TABS.map(([id, label, icon]) => html`<button key=${id} type="button" onClick=${() => setTab(id)} aria-current=${tab === id ? "page" : undefined}
+          className=${"-mb-px flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-bold transition " + (tab === id ? "border-acc text-ink" : "border-transparent text-mute hover:text-ink")}>
+          <${Icon} name=${icon} size=${16} />${label}</button>`)}
+      </div>
+      ${tab === "compartir" && html`<${ShareTab} s=${s} gist=${gist} notify=${notify} openQR=${openQR} />`}
+      ${tab === "codigo" && html`<${EditTab} s=${s} patch=${patch} notify=${notify} />`}
+      ${tab === "auditoria" && html`<${AuditTab} s=${s} onApplyFix=${applyFix} notify=${notify} />`}
+      <div className="flex justify-end border-t border-line pt-3"><${ConfirmBtn} small=${false} onConfirm=${onDelete} confirmText="Toca otra vez para borrar">Borrar script<//></div>
+    </div>`;
+  }
+
+  // ---------- Ajustes (token, Gist, respaldo) ----------
+  function Settings({ gist, setGist, scripts, replaceAll, notify, onClose }) {
+    const [token, setToken] = useState(() => LS.get(TKEY, ""));
+    const [gistId, setGistId] = useState(gist ? gist.id : "");
+    const [showToken, setShowToken] = useState(false);
+    const [busy, setBusy] = useState("");
+    const fileRef = useRef(null);
+    const saveToken = (v) => { setToken(v); LS.set(TKEY, v); };
+    const run = async (kind) => {
+      setBusy(kind);
+      try {
+        if (kind === "push") {
+          const r = await G.pushGist(token, gist && gist.id ? gist : (gistId ? { id: gistId, files: {} } : null), scripts);
+          replaceAll(r.scripts, r.meta); setGistId(r.meta.id); notify("Subido a la nube. " + G.live(r.scripts).length + " scripts en el Gist.");
+        } else {
+          const base = gist && gist.id ? gist : (gistId ? G.sanitizeGistMeta({ id: gistId, files: {} }) : null);
+          const r = await G.pullGist(token, base, scripts);
+          replaceAll(r.scripts, r.meta); setGistId(r.meta.id); notify("Descargado de la nube. Ahora tienes " + G.live(r.scripts).length + " scripts.");
+        }
+      } catch (e) { notify(e && e.message ? e.message : "Algo falló con GitHub."); }
+      finally { setBusy(""); }
+    };
+    const doImport = (text) => { try { const p = G.parsePayload(text); replaceAll(G.mergeLibraries(scripts, p.scripts), gist); notify("Importado: " + G.live(p.scripts).length + " scripts del archivo."); } catch (e) { notify(e.message); } };
+    return html`<div className="grid gap-5">
+      <div className="flex items-center justify-between gap-2"><h2 className="m-0 flex items-center gap-2 text-xl font-bold"><${Icon} name="Settings" className="text-acc" />Ajustes<//>
+        <${Btn} kind="subtle" small icon="X" label="Cerrar" onClick=${onClose} /></div>
+
+      <section className="grid gap-3 rounded-2xl border border-line bg-panel p-4">
+        <h3 className="m-0 flex items-center gap-2 font-bold"><${Icon} name="Github" size=${18} />Sincronizar con GitHub Gists</h3>
+        <p className="m-0 text-sm text-mute">Guarda tu biblioteca en un Gist privado para tenerla en el celular y en el PC. Necesitas un <b>token clásico (classic)</b> con el permiso <b>gist</b>. Se guarda solo en este dispositivo.</p>
+        <a href="https://github.com/settings/tokens/new?scopes=gist&description=Lanzador%20de%20Scripts" target="_blank" rel="noopener" className="text-sm text-info underline">Crear el token en GitHub (con el permiso «gist» ya marcado)</a>
+        <${Field} id="f-token" label="Token de acceso personal (PAT)">
+          <div className="flex gap-2">
+            <input id="f-token" type=${showToken ? "text" : "password"} value=${token} onChange=${(e) => saveToken(e.target.value.trim())} className=${INPUT + " code min-w-0 flex-1"} placeholder="ghp_..." autoComplete="off" spellCheck="false" />
+            <${Btn} small kind="ghost" icon=${showToken ? "EyeOff" : "Eye"} label="Mostrar u ocultar" onClick=${() => setShowToken(!showToken)} />
+          </div>
+        <//>
+        <${Field} id="f-gistid" label="ID del Gist (opcional)" hint="Déjalo vacío para crear uno nuevo al subir. Pégalo para conectarte a uno que ya tienes.">
+          <input id="f-gistid" type="text" value=${gistId} onChange=${(e) => setGistId(e.target.value.trim())} className=${INPUT + " code"} placeholder="Ej.: 1a2b3c..." />
+        <//>
+        ${IN_CLAUDE && html`<p className="m-0 flex gap-2 rounded-xl border border-info/40 bg-raised p-3 text-xs text-info"><${Icon} name="Info" size=${15} className="mt-0.5 shrink-0" />Dentro de claude.ai el visor bloquea la conexión con GitHub. Para subir y bajar del Gist, abre el archivo .html en Chrome en tu PC. La sincronización rápida celular↔PC dentro de claude.ai usa la nube de Claude (arriba a la derecha).</p>`}
+        <div className="grid grid-cols-2 gap-2">
+          <${Btn} kind="primary" icon="UploadCloud" disabled=${!!busy || !token} onClick=${() => run("push")}>${busy === "push" ? "Subiendo..." : "Subir a la nube (Push)"}<//>
+          <${Btn} icon="DownloadCloud" disabled=${!!busy || !token} onClick=${() => run("pull")}>${busy === "pull" ? "Descargando..." : "Descargar (Pull)"}<//>
+        </div>
+        ${gist && gist.htmlUrl && html`<a href=${gist.htmlUrl} target="_blank" rel="noopener" className="text-sm text-info underline">Gist conectado: ${gist.owner}/${gist.id.slice(0, 8)}… (abrir en GitHub)</a>`}
+      </section>
+
+      <section className="grid gap-3 rounded-2xl border border-line bg-panel p-4">
+        <h3 className="m-0 flex items-center gap-2 font-bold"><${Icon} name="HardDriveDownload" size=${18} />Respaldo en archivo (.json)</h3>
+        <div className="grid grid-cols-2 gap-2">
+          <${Btn} icon="FileJson" onClick=${async () => notify(await saveFile("lanzador-scripts-" + new Date().toISOString().slice(0, 10) + ".json", JSON.stringify(G.exportPayload(scripts, gist ? gist.files : {}), null, 1), "application/json"))}>Exportar todo<//>
+          <${Btn} icon="Upload" onClick=${() => fileRef.current && fileRef.current.click()}>Importar<//>
+          <input ref=${fileRef} type="file" accept=".json,application/json" className="hidden" onChange=${(e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => doImport(String(rd.result || "")); rd.onerror = () => notify("No pude leer el archivo."); rd.readAsText(f); e.target.value = ""; }} />
+        </div>
+      </section>
+    </div>`;
+  }
+
+  // ---------- Aplicación ----------
+  function App() {
+    const init = loadLocal();
+    const [scripts, setScripts] = useState(init.scripts);
+    const [gist, setGist] = useState(init.gist);
+    const [query, setQuery] = useState("");
+    const [filterCat, setFilterCat] = useState("");
+    const [filterLang, setFilterLang] = useState("");
+    const [selId, setSelId] = useState(() => { const l = G.live(init.scripts); return l.length ? l.sort((a, b) => b.updatedAt - a.updatedAt)[0].id : null; });
+    const [tab, setTab] = useState("compartir");
+    const [view, setView] = useState("list"); // en móvil: list | detail | settings
+    const [toast, setToast] = useState(null);
+    const [qr, setQr] = useState(null);
+    const scriptsRef = useRef(scripts); scriptsRef.current = scripts;
+    const gistRef = useRef(gist); gistRef.current = gist;
+    const cloudWriteRef = useRef(null);
+
+    const notify = useCallback((msg) => { if (msg) setToast({ msg: msg, id: Date.now() }); }, []);
+    useEffect(() => { if (!toast) return undefined; const t = setTimeout(() => setToast(null), 3600); return () => clearTimeout(t); }, [toast]);
+
+    // Guardado local (con aviso único si el navegador no deja guardar).
+    const warned = useRef(false);
+    useEffect(() => {
+      const t = setTimeout(() => { if (!LS.set(LKEY, { scripts: scripts, gist: gist }) && !warned.current) { warned.current = true; notify("No pude guardar en este navegador: lo de esta sesión se perderá al cerrar."); } }, 250);
+      return () => clearTimeout(t);
+    }, [scripts, gist]);
+
+    // Nube de Claude: funde los cambios que llegan de otro dispositivo.
+    const onRemote = useCallback((remote) => {
+      setScripts((cur) => G.mergeLibraries(cur, remote.scripts));
+      if (remote.gist && (!gistRef.current || remote.gist.pushedAt > gistRef.current.pushedAt)) setGist(remote.gist);
+    }, []);
+    const [cloud, cloudWrite] = useClaudeCloud(onRemote);
+    cloudWriteRef.current = cloudWrite;
+
+    const persistScript = (s) => { if (cloudWriteRef.current) cloudWriteRef.current(s.id, s); };
+    const persistMeta = (g) => { if (cloudWriteRef.current) cloudWriteRef.current("meta", { gist: g || null }); };
+
+    const results = useMemo(() => G.search(scripts, query, { category: filterCat, lang: filterLang }), [scripts, query, filterCat, filterLang]);
+    const selected = useMemo(() => G.live(scripts).find((s) => s.id === selId) || null, [scripts, selId]);
+
+    const openScript = (id) => { setSelId(id); setTab("compartir"); setView("detail"); };
+    const patch = (fields) => {
+      if (!selected) return;
+      const next = Object.assign({}, selected, fields, { updatedAt: Date.now() });
+      setScripts((cur) => cur.map((s) => (s.id === next.id ? next : s)));
+      persistScript(next);
+    };
+    const applyFix = (fixId) => { if (selected) patch({ code: G.applyFix(selected.code, fixId) }); };
+    const addScript = () => {
+      const s = G.newScript("pwsh");
+      setScripts((cur) => cur.concat(s)); persistScript(s);
+      setSelId(s.id); setTab("codigo"); setView("detail");
+    };
+    const deleteScript = () => {
+      if (!selected) return;
+      const tomb = Object.assign({}, selected, { deleted: true, updatedAt: Date.now() });
+      setScripts((cur) => cur.map((s) => (s.id === tomb.id ? tomb : s)));
+      persistScript(tomb);
+      notify("Script borrado."); setView("list"); setSelId(null);
+    };
+    const replaceAll = (nextScripts, nextGist) => {
+      const clean = G.mergeLibraries(nextScripts, []);
+      setScripts(clean); setGist(nextGist || null);
+      G.live(clean).forEach(persistScript);
+      clean.filter((s) => s.deleted).forEach(persistScript);
+      persistMeta(nextGist || null);
+      const stillThere = G.live(clean).some((s) => s.id === selId);
+      if (!stillThere) { const l = G.live(clean); setSelId(l.length ? l[0].id : null); }
+    };
+    const setGistBoth = (g) => { setGist(g); persistMeta(g); };
+
+    const cloudBadge = { conectando: ["Nube: conectando…", "text-mute", "Loader"], sincronizado: ["Nube de Claude activa", "text-good", "CloudCheck"], local: ["Solo en este equipo", "text-faint", "HardDrive"], error: ["Nube: error", "text-bad", "CloudOff"] }[cloud.status] || ["", "text-faint", "HardDrive"];
+
+    const List = html`<div className="grid gap-3">
+      <div className="grid gap-2">
+        <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-faint"><${Icon} name="Search" size=${18} /></span>
+          <input type="search" value=${query} onChange=${(e) => setQuery(e.target.value)} placeholder="Buscar por nombre, etiqueta o problema…" aria-label="Buscar scripts" className=${INPUT + " pl-10"} /></div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button type="button" onClick=${() => setFilterCat("")} aria-pressed=${!filterCat} className=${"shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold " + (!filterCat ? "border-acc bg-acc text-acc-ink" : "border-line bg-raised text-ink")}>Todas</button>
+          ${G.CATEGORIES.map((c) => html`<button key=${c} type="button" onClick=${() => setFilterCat(filterCat === c ? "" : c)} aria-pressed=${filterCat === c}
+            className=${"shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold " + (filterCat === c ? "border-acc bg-acc text-acc-ink" : "border-line bg-raised text-ink")}><${Icon} name=${CAT_ICON[c]} size=${15} />${c}</button>`)}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex gap-1 rounded-xl border border-line bg-raised p-1">
+            <button type="button" onClick=${() => setFilterLang("")} className=${"rounded-lg px-2.5 py-1 text-sm font-semibold " + (!filterLang ? "bg-line text-ink" : "text-mute")}>Todos</button>
+            ${Object.keys(G.LANGS).map((k) => html`<button key=${k} type="button" onClick=${() => setFilterLang(filterLang === k ? "" : k)} className=${"rounded-lg px-2.5 py-1 text-sm font-semibold " + (filterLang === k ? "bg-line text-ink" : "text-mute")}>${G.LANGS[k].short}</button>`)}
+          </div>
+          <span className="ml-auto text-sm text-faint">${results.length} de ${G.live(scripts).length}</span>
+        </div>
+      </div>
+      ${results.length === 0 ? html`<p className="rounded-2xl border border-dashed border-line p-6 text-center text-mute">${G.live(scripts).length ? "Nada coincide con la búsqueda." : "No tienes scripts. Toca «Nuevo» para crear uno."}</p>`
+        : html`<ul className="grid gap-2">${results.map((s) => html`<li key=${s.id}>
+          <button type="button" onClick=${() => openScript(s.id)} className=${"grid w-full gap-1.5 rounded-2xl border bg-panel p-3 text-left transition hover:border-line " + (selId === s.id ? "border-acc" : "border-line/60")}>
+            <div className="flex items-start justify-between gap-2"><span className="min-w-0 break-words font-semibold">${s.name || "Script sin nombre"}</span><${Chip} tone=${LANG_TONE[s.lang]}>${G.LANGS[s.lang].short}<//></div>
+            ${s.notes && html`<p className="m-0 line-clamp-2 text-sm text-mute">${s.notes}</p>`}
+            <div className="flex flex-wrap items-center gap-1.5"><span className="inline-flex items-center gap-1 text-xs text-faint"><${Icon} name=${CAT_ICON[s.category]} size=${13} />${s.category}</span>
+              ${s.tags.slice(0, 3).map((t) => html`<${Chip} key=${t}>${t}<//>`)}${s.tags.length > 3 && html`<span className="text-xs text-faint">+${s.tags.length - 3}</span>`}</div>
+          </button></li>`)}</ul>`}
+    </div>`;
+
+    return html`<div className="grid gap-4">
+      <header className="grid gap-3">
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="m-0 flex items-center gap-2 text-2xl font-extrabold tracking-tight"><${Icon} name="TerminalSquare" size=${26} className="text-acc" />Lanzador de Scripts</h1>
+          <div className="flex items-center gap-2">
+            <span className=${"hidden items-center gap-1.5 text-xs sm:inline-flex " + cloudBadge[1]} title=${cloud.detail}><${Icon} name=${cloudBadge[2]} size=${15} />${cloudBadge[0]}</span>
+            <${Btn} small kind="ghost" icon="Settings" label="Ajustes" onClick=${() => setView("settings")} />
+            <${Btn} small kind="primary" icon="Plus" onClick=${addScript}>Nuevo<//>
+          </div>
+        </div>
+        ${cloud.detail && cloud.status !== "sincronizado" && html`<p className="m-0 flex gap-2 rounded-xl border border-line bg-panel p-2.5 text-xs text-mute"><${Icon} name="Info" size=${14} className="mt-0.5 shrink-0" />${cloud.detail}</p>`}
+      </header>
+
+      ${view === "settings"
+        ? html`<${Settings} gist=${gist} setGist=${setGistBoth} scripts=${scripts} replaceAll=${replaceAll} notify=${notify} onClose=${() => setView("list")} />`
+        : html`<div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+            <div className=${(view === "detail" ? "hidden " : "") + "lg:block"}>${List}</div>
+            <div className=${(view === "list" ? "hidden " : "") + "lg:block"}>
+              ${selected ? html`<div className="rounded-2xl border border-line bg-panel/40 p-4">
+                  <${Detail} s=${selected} gist=${gist} tab=${tab} setTab=${setTab} patch=${patch} applyFix=${applyFix} notify=${notify} openQR=${(t, x) => setQr({ title: t, text: x })} onClose=${() => setView("list")} onDelete=${deleteScript} />
+                </div>`
+                : html`<div className="hidden h-full place-items-center rounded-2xl border border-dashed border-line p-10 text-center text-mute lg:grid">Elige un script de la lista o crea uno nuevo.</div>`}
+            </div>
+          </div>`}
+
+      <footer className="text-xs text-faint">Esta app guarda, audita y comparte scripts; <b>no los ejecuta</b>. Revisa siempre el código antes de correrlo en un equipo. Todo se guarda en tu dispositivo y, si inicias sesión, en tu cuenta.</footer>
+      ${qr && html`<${QrModal} title=${qr.title} text=${qr.text} notify=${notify} onClose=${() => setQr(null)} />`}
+      ${toast && html`<div role="status" key=${toast.id} className="fixed left-1/2 z-50 w-[min(92vw,520px)] -translate-x-1/2 rounded-xl border border-line bg-raised px-4 py-3 text-sm shadow-2xl" style=${{ bottom: "calc(16px + env(safe-area-inset-bottom, 0px))" }}>${toast.msg}</div>`}
+    </div>`;
+  }
+
+  class Boundary extends React.Component {
+    constructor(props) { super(props); this.state = { error: null }; }
+    static getDerivedStateFromError(error) { return { error: error }; }
+    render() {
+      if (!this.state.error) return this.props.children;
+      return html`<div className="grid gap-3 rounded-2xl border border-bad/60 bg-panel p-5">
+        <h2 className="m-0 text-lg font-bold">Algo falló al mostrar la app</h2>
+        <p className="m-0 text-sm text-mute">Detalle: ${String(this.state.error && this.state.error.message || this.state.error)}</p>
+        <button type="button" className="min-h-[48px] rounded-xl border border-line bg-raised px-4 font-semibold" onClick=${() => location.reload()}>Recargar</button>
+      </div>`;
+    }
+  }
+  ReactDOM.createRoot(rootEl).render(html`<${Boundary}><${App} /><//>`);
+};
+</script>
+
+<script id="loader">
+/*
+ * Cargador con respaldo: cada librería se intenta en varios servidores permitidos.
+ * Los íconos y el generador de QR son opcionales: sin ellos la app sigue funcionando.
+ */
+(function () {
+  "use strict";
+  var rootEl = document.getElementById("root");
+  var LIBS = [
+    { name: "React", test: function () { return window.React; }, urls: [
+      "https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js",
+      "https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js",
+      "https://unpkg.com/react@18.3.1/umd/react.production.min.js"] },
+    { name: "ReactDOM", test: function () { return window.ReactDOM; }, urls: [
+      "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js",
+      "https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js",
+      "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"] },
+    { name: "htm", test: function () { return window.htm; }, urls: [
+      "https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js",
+      "https://unpkg.com/htm@3.1.1/dist/htm.umd.js"] },
+    { name: "íconos (lucide-react)", optional: true, test: function () { return window.LucideReact; },
+      before: function () { window.react = window.React; },
+      urls: [
+        "https://cdn.jsdelivr.net/npm/lucide-react@0.263.1/dist/umd/lucide-react.min.js",
+        "https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.min.js"] },
+    { name: "generador de QR", optional: true, test: function () { return window.qrcode; }, urls: [
+      "https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js",
+      "https://unpkg.com/qrcode-generator@1.4.4/qrcode.js",
+      "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"] },
+  ];
+  var tried = [];
+  function loadScript(url, ms) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      var timer = setTimeout(function () { s.onload = s.onerror = null; reject(new Error("tardó demasiado")); }, ms);
+      s.src = url;
+      s.onload = function () { clearTimeout(timer); resolve(); };
+      s.onerror = function () { clearTimeout(timer); reject(new Error("bloqueado o sin conexión")); };
+      document.head.appendChild(s);
+    });
+  }
+  function loadLib(lib) {
+    if (lib.before) lib.before();
+    if (lib.test()) return Promise.resolve(true);
+    var i = 0;
+    function next() {
+      if (i >= lib.urls.length) return Promise.resolve(false);
+      var url = lib.urls[i++];
+      return loadScript(url, 10000).then(function () {
+        if (lib.test()) return true;
+        tried.push(lib.name + ": " + url.split("/")[2] + " cargó pero no definió la librería");
+        return next();
+      }, function (e) { tried.push(lib.name + ": " + url.split("/")[2] + " " + e.message); return next(); });
+    }
+    return next();
+  }
+  function showFailure(missing) {
+    rootEl.textContent = "";
+    var box = document.createElement("div"); box.className = "boot";
+    var h = document.createElement("p"); h.style.color = "#e2ebe6"; h.textContent = "No pude cargar: " + missing.join(", ") + ".";
+    var why = document.createElement("p"); why.textContent = "Revisa tu conexión y vuelve a intentar. Si sigue igual, envía este detalle:";
+    var pre = document.createElement("pre"); pre.style.whiteSpace = "pre-wrap"; pre.style.fontSize = "12px";
+    pre.textContent = tried.concat(window.__bootErrors || []).join("\n") || "(sin detalle)";
+    var btn = document.createElement("button"); btn.type = "button"; btn.textContent = "Reintentar";
+    btn.style.cssText = "min-height:48px;padding:0 16px;border-radius:12px;border:1px solid #3ddc84;background:#3ddc84;color:#06240f;font-weight:700";
+    btn.addEventListener("click", function () { location.reload(); });
+    box.appendChild(h); box.appendChild(why); box.appendChild(pre); box.appendChild(btn); rootEl.appendChild(box);
+  }
+  if (!window.GestorEngine) { showFailure(["el motor de la app"]); return; }
+  var missing = [];
+  LIBS.reduce(function (chain, lib) {
+    return chain.then(function () { return loadLib(lib).then(function (ok) { if (!ok && !lib.optional) missing.push(lib.name); }); });
+  }, Promise.resolve()).then(function () {
+    if (missing.length) { showFailure(missing); return; }
+    try { window.__startApp(); } catch (e) { tried.push("interfaz: " + e.message); showFailure(["la interfaz"]); }
+  });
+})();
+</script>
