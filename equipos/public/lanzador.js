@@ -420,7 +420,7 @@
           <h3 className="font-semibold flex items-center gap-2"><${Icon} name="Bell" />Notificaciones</h3>
           ${ios && html`<p className="text-sm text-warn">En iPhone: toca Compartir (Share) → «Agregar a inicio» (Add to Home Screen) y abre la app desde ese ícono. Solo así iOS permite avisos.</p>`}
           ${perm === "denied" && html`<p className="text-sm text-bad">Las bloqueaste en este navegador: toca el candado junto a la dirección → Notificaciones → Permitir, y recarga.</p>`}
-          ${!E.pushReady() && html`<p className="text-sm text-warn">El servidor de avisos no está configurado todavía (config.json). Mientras tanto, los avisos solo salen con la app abierta.</p>`}
+          ${!E.pushReady() && html`<p className="text-sm text-warn">El servidor de avisos no está configurado todavía (config.js). Mientras tanto, los avisos solo salen con la app abierta.</p>`}
           <p className="text-sm text-mute">${onThis ? "Este dispositivo recibe avisos cuando te envían o te piden un script, aunque la app esté cerrada." : "Actívalas en cada celular o PC donde quieras recibir avisos."}</p>
           <div className="flex gap-2 flex-wrap">
             ${!onThis && html`<${Btn} kind="primary" disabled=${busy === "n" || perm === "denied"} onClick=${() => run("n", async () => { await E.enablePush(); setPerm(Notification.permission); toast("Notificaciones activadas en este dispositivo."); })}><${Icon} name="BellRing" />Activar en este dispositivo<//>`}
