@@ -65,5 +65,5 @@ try {
   execFileSync(process.execPath, [nm("tailwindcss/lib/cli.js"), "-c", "tailwind.config.cjs", "-i", ".tw-in.css", "-o", out("lanzador.css"), "--minify"], { cwd: here, stdio: ["ignore", "ignore", "inherit"] });
 } finally { rmSync(join(here, ".tw-in.css"), { force: true }); }
 
-if (!existsSync(out("config.json"))) console.log("Aviso: no hay public/config.json. La app funciona, pero sin notificaciones push hasta que lo crees (ver config.ejemplo.json).");
+if (!existsSync(out("config.js"))) console.log("Aviso: no hay public/config.js. En Firebase Hosting la app funciona sin él, pero sin avisos push (ver config.ejemplo.js).");
 console.log("Listo: public/ preparada para «firebase deploy».");

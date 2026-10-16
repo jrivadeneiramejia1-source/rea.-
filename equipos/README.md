@@ -42,6 +42,49 @@ Cloudflare Worker ──verifica la sesión, lee el mensaje──▶ FCM ──�
 
 Para un grupo de ~10 personas usando la app varias horas al día queda dentro del plan gratis.
 
+## Publicar desde el navegador (sin instalar nada)
+
+Usa el archivo `lanzador-equipos.zip` (se arma con `npm run build && node empaquetar.mjs`). Trae:
+`1-sitio/` (la app), `1-sitio/config.js` (lo llenas con el Bloc de notas), `2-worker.js` y `3-reglas-firestore.txt`.
+
+**A. Firebase** (https://console.firebase.google.com)
+1. **Crear un proyecto** → nombre `lanzador-jeiler` → sin Google Analytics.
+2. En la página del proyecto, ícono **`</>` (Web)** → apodo `Lanzador` → **Registrar app** (sin marcar Hosting). Copia el bloque `const firebaseConfig = { … };`.
+3. **Authentication → Comenzar → Método de acceso (Sign-in method):** activa **Google** (elige tu correo de asistencia) y **Correo electrónico/contraseña**.
+4. **Firestore Database → Crear base de datos** → edición Standard → ubicación `nam5 (United States)` → **modo de producción** → Crear. Luego pestaña **Reglas (Rules)** → borra todo → pega `3-reglas-firestore.txt` → **Publicar**.
+5. **Engranaje → Configuración del proyecto → Cloud Messaging → Certificados push web → Generar par de claves.** Copia la clave.
+6. **Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada.** Se descarga un `.json`: es una llave privada, no la compartas.
+
+**B. Cloudflare Worker** (https://dash.cloudflare.com)
+7. **Workers & Pages → Create (Crear) → Create Worker** → nombre `lanzador-notificaciones` → **Deploy**. Luego **Edit code (Editar código)** → borra todo → pega `2-worker.js` → **Deploy**. Copia la dirección `https://lanzador-notificaciones.….workers.dev`.
+
+**C. La app**
+8. Abre `1-sitio/config.js` con el Bloc de notas: pega el bloque de Firebase (paso 2), la clave push (paso 5) y la dirección del Worker (paso 7). Guarda.
+9. **Workers & Pages → Create → Pages → Upload assets (Subir archivos)** → nombre `lanzador-jeiler` → arrastra la carpeta `1-sitio` → **Deploy site**. Tu app queda en `https://lanzador-jeiler.pages.dev`.
+
+**D. Conectar todo**
+10. Worker → **Settings (Configuración) → Variables and Secrets → Add (Agregar)**:
+
+    | Tipo | Nombre | Valor |
+    |---|---|---|
+    | Text | `FIREBASE_PROJECT_ID` | `lanzador-jeiler` (el ID del proyecto) |
+    | Text | `APP_URL` | `https://lanzador-jeiler.pages.dev` |
+    | Text | `ALLOWED_ORIGINS` | `https://lanzador-jeiler.pages.dev` |
+    | Secret | `GOOGLE_SERVICE_ACCOUNT` | todo el contenido del `.json` del paso 6 |
+
+    → **Deploy**.
+11. Firebase → **Authentication → Configuración (Settings) → Dominios autorizados → Agregar dominio** → `lanzador-jeiler.pages.dev`.
+12. Abre la app, crea tu cuenta y tu equipo. La primera vez salen avisos «Falta un índice de Firestore»: toca cada uno → **Guardar** y espera unos 5 minutos. Si prefieres crearlos a mano (Firestore → Índices → Compuesto):
+
+    | Colección | Campo 1 | Campo 2 |
+    |---|---|---|
+    | `messages` | `to` Ascendente | `createdAt` Descendente |
+    | `messages` | `from` Ascendente | `createdAt` Descendente |
+    | `requests` | `team` Ascendente | `createdAt` Descendente |
+    | `community` | `team` Ascendente | `publishedAt` Descendente |
+
+Para actualizar la app después: Pages → tu proyecto → **Create deployment (Nueva implementación)** → arrastra otra vez `1-sitio` (con tu `config.js`).
+
 ## Instalar (Windows, PowerShell 7)
 
 Necesitas Node.js 20 o más nuevo (`winget install OpenJS.NodeJS.LTS`), una cuenta de Google y una de Cloudflare.
@@ -89,9 +132,10 @@ En iPhone las notificaciones solo funcionan con la app agregada a inicio (iOS 16
 | `firestore.rules` | Reglas de seguridad (quién puede leer y escribir qué) |
 | `worker/src/index.js` | Worker de Cloudflare que envía los avisos |
 | `build.mjs` | Copia librerías a `public/vendor`, toma el motor de `../gestor-scripts/lanzador.html`, prepara `/asesor/` y compila Tailwind |
-| `instalar.ps1` | Instalador guiado |
+| `instalar.ps1` | Instalador guiado (PowerShell) |
+| `empaquetar.mjs` | Arma `lanzador-equipos.zip` para publicar desde el navegador |
 
-`public/motor.js`, `public/vendor/`, `public/asesor/`, `public/lanzador.css` y `public/config.json` los genera `npm run build` o el instalador (no se suben a GitHub).
+`public/motor.js`, `public/vendor/`, `public/asesor/`, `public/lanzador.css` y `public/config.js` los genera `npm run build` o el instalador (no se suben a GitHub). La plantilla es `public/config.ejemplo.js`.
 
 ## Pruebas
 

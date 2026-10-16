@@ -3,7 +3,9 @@ public/vendor/
 public/motor.js
 public/lanzador.css
 public/asesor/
-public/config.json
+public/config.js
+paquete/
+*.zip
 .firebase/
 .firebaserc
 worker/.wrangler/

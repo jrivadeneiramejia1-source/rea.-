@@ -2,7 +2,7 @@
   "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
   "hosting": {
     "public": "public",
-    "ignore": ["config.ejemplo.json", "**/.*"],
+    "ignore": ["config.ejemplo.js", "**/.*"],
     "cleanUrls": false,
     "rewrites": [{ "source": "/asesor", "destination": "/asesor/index.html" }],
     "headers": [

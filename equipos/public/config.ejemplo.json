@@ -1,4 +1,0 @@
-{
-  "vapidKey": "PEGA-AQUÍ-LA-CLAVE-WEB-PUSH (Firebase → Configuración del proyecto → Cloud Messaging → Certificados web push)",
-  "notifyUrl": "https://lanzador-notificaciones.TU-CUENTA.workers.dev"
-}

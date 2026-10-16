@@ -9,7 +9,7 @@
       3. Crea la base de datos Firestore si falta y te abre las páginas de la consola que no se pueden automatizar
          (activar Google y correo/contraseña, clave Web Push, clave de la cuenta de servicio).
       4. Publica el Worker de avisos en Cloudflare con la cuenta de servicio como secreto.
-      5. Escribe public/config.json (con copia de respaldo si ya existía) y publica la app en Firebase Hosting.
+      5. Escribe public/config.js (con copia de respaldo si ya existía) y publica la app en Firebase Hosting.
     No instala programas en tu PC: si falta Node.js, te dice el comando para instalarlo.
 .PARAMETER ProyectoId
     ID del proyecto de Firebase (ej. lanzador-jeiler). Si no lo das, te lo pregunta.
@@ -152,19 +152,16 @@ try {
 
     # ---------- 4. Configuración y publicación ----------
     Paso 'Publicar la app'
-    $cfgPath = Join-Path $raiz 'public\config.json'
+    $cfgPath = Join-Path $raiz 'public\config.js'
     if ($config.Count) {
         if (Test-Path $cfgPath) {
             $copia = "$cfgPath.$(Get-Date -Format 'yyyyMMdd-HHmmss').bak"
             if (-not $Simular) { Copy-Item $cfgPath $copia }
             Ok "Copia de respaldo: $copia"
-            # Se conservan las claves que ya tenía y se actualizan solo las nuevas.
-            $viejo = Get-Content $cfgPath -Raw | ConvertFrom-Json -AsHashtable
-            foreach ($k in $config.Keys) { $viejo[$k] = $config[$k] }
-            $config = $viejo
         }
-        if (-not $Simular) { $config | ConvertTo-Json | Set-Content -Path $cfgPath -Encoding utf8 }
-        Ok 'public/config.json actualizado'
+        # Sin "firebase": en Firebase Hosting la app toma esos datos de /__/firebase/init.json.
+        if (-not $Simular) { "self.LANZADOR_CONFIG = $($config | ConvertTo-Json -Compress);" | Set-Content -Path $cfgPath -Encoding utf8 }
+        Ok 'public/config.js actualizado'
     }
     if (Correr 'npm run build') { npm run build; Revisar 'npm run build' }
     if (-not (Confirmar "¿Publicar la app y las reglas de seguridad en https://$ProyectoId.web.app?")) { return }

@@ -15,12 +15,18 @@
   const FV = () => root.firebase.firestore.FieldValue;
 
   // ---------- Arranque ----------
+  // Configuración: public/config.js (window.LANZADOR_CONFIG). Si no trae los datos de Firebase,
+  // se usan los que Firebase Hosting publica en /__/firebase/init.json.
+  const filled = (v) => typeof v === "string" && v.trim() !== "" && !/PEGA/i.test(v);
   async function loadConfig() {
-    const own = await fetch("/config.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
-    let firebaseCfg = own.firebase;
-    if (!firebaseCfg) firebaseCfg = await fetch("/__/firebase/init.json").then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    if (!firebaseCfg || !firebaseCfg.apiKey) throw new Error("Falta la configuración de Firebase. Publica la app con «firebase deploy» o crea public/config.json.");
-    return Object.assign({}, own, { firebase: firebaseCfg });
+    if (root.__configError) throw new Error("El archivo config.js quedó con un error (" + root.__configError + "). Revisa que pegaste solo el bloque «const firebaseConfig = { … };» y que no borraste comillas.");
+    const own = root.LANZADOR_CONFIG && typeof root.LANZADOR_CONFIG === "object" ? root.LANZADOR_CONFIG : {};
+    let firebaseCfg = own.firebase || null;
+    if (firebaseCfg && !filled(firebaseCfg.apiKey)) throw new Error("En el archivo config.js falta pegar los datos de Firebase (el bloque «const firebaseConfig = {…}»).");
+    if (!firebaseCfg) firebaseCfg = await fetch("/__/firebase/init.json").then((r) => r.json()).catch(() => null);
+    if (!firebaseCfg || !filled(firebaseCfg.apiKey)) throw new Error("Falta el archivo config.js con los datos de Firebase.");
+    const url = filled(own.notifyUrl) && /^https?:\/\//.test(own.notifyUrl.trim()) ? own.notifyUrl.trim() : "";
+    return Object.assign({}, own, { firebase: firebaseCfg, vapidKey: filled(own.vapidKey) ? own.vapidKey.trim() : "", notifyUrl: url });
   }
 
   async function init() {
@@ -282,7 +288,7 @@
 
   async function enablePush() {
     if (!pushSupported()) throw new Error(isIOS() && !isStandalone() ? "En iPhone primero agrega la app a la pantalla de inicio (Compartir → Agregar a inicio) y ábrela desde el ícono." : "Este navegador no permite notificaciones push.");
-    if (!pushReady()) throw new Error("Las notificaciones push aún no están configuradas (falta vapidKey o notifyUrl en config.json).");
+    if (!pushReady()) throw new Error("Las notificaciones push aún no están configuradas (falta la clave web push o la dirección del Worker en config.js).");
     const perm = await Notification.requestPermission();
     if (perm !== "granted") throw new Error(perm === "denied" ? "Bloqueaste las notificaciones. Actívalas en el candado de la barra de direcciones → Notificaciones → Permitir." : "No diste permiso para notificaciones.");
     const reg = swReg || (await navigator.serviceWorker.ready);

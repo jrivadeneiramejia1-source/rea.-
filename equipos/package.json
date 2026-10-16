@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
+    "paquete": "node build.mjs && node empaquetar.mjs",
     "test:worker": "node pruebas/worker.test.mjs",
     "test:reglas": "firebase emulators:exec --only firestore --project demo-equipos \"node pruebas/reglas.test.mjs\"",
     "emuladores": "firebase emulators:start --only auth,firestore,hosting --project demo-equipos",

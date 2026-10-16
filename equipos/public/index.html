@@ -23,6 +23,8 @@
 <script>window.react = window.React; /* lucide-react (UMD) busca React como "react" */</script>
 <script src="/vendor/lucide-react.min.js"></script>
 <script src="/vendor/qrcode.js"></script>
+<script>window.addEventListener("error", function (e) { if (/config\.js/.test(e.filename || "")) window.__configError = e.message; });</script>
+<script src="/config.js"></script>
 <script src="/vendor/firebase-app-compat.js"></script>
 <script src="/vendor/firebase-auth-compat.js"></script>
 <script src="/vendor/firebase-firestore-compat.js"></script>

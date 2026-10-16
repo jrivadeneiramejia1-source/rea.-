@@ -12,6 +12,7 @@
   const load = (src) => new Promise((ok, bad) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => bad(new Error("No cargó " + src)); document.head.appendChild(s); });
   function ready() {
     readyP = readyP || (async () => {
+      await load("/config.js").catch(() => {}); // opcional: en Firebase Hosting puede no existir
       for (const src of LIBS) await load(src);
       const E = window.Equipos;
       await E.init();

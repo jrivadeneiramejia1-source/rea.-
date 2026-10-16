@@ -13,13 +13,19 @@ const SHELL = [
 ];
 const SHARED = "compartidos";
 
-// Firebase: /__/firebase/init.js lo genera Firebase Hosting con la configuración del proyecto.
+// Firebase: datos de config.js (Cloudflare Pages u otro hosting) o de /__/firebase/init.js (Firebase Hosting).
+// Si el aviso trae "notification", Firebase lo muestra solo y al tocarlo abre fcm_options.link.
 try {
-  importScripts("/vendor/firebase-app-compat.js", "/vendor/firebase-messaging-compat.js", "/__/firebase/init.js");
-  // Si el aviso trae "notification", Firebase lo muestra solo y al tocarlo abre fcm_options.link.
-  if (self.firebase && self.firebase.apps && self.firebase.apps.length) self.firebase.messaging();
+  importScripts("/vendor/firebase-app-compat.js", "/vendor/firebase-messaging-compat.js");
+  try {
+    importScripts("/config.js");
+    const c = self.LANZADOR_CONFIG;
+    if (c && c.firebase && typeof c.firebase.apiKey === "string" && !/PEGA/i.test(c.firebase.apiKey)) self.firebase.initializeApp(c.firebase);
+  } catch (e) { /* sin config.js */ }
+  if (!self.firebase.apps.length) { try { importScripts("/__/firebase/init.js"); } catch (e) { /* no es Firebase Hosting */ } }
+  if (self.firebase.apps.length) self.firebase.messaging();
 } catch (e) {
-  // En pruebas locales (sin Firebase Hosting) no hay init.js: la app sigue funcionando sin push.
+  // Sin configuración de Firebase la app sigue funcionando, sin avisos push.
 }
 
 self.addEventListener("install", (event) => {
@@ -58,7 +64,7 @@ self.addEventListener("fetch", (event) => {
   // Páginas y código propio: primero internet (para tener la última versión), si no hay, la copia guardada.
   if (req.mode === "navigate" || /\.(js|css|json|webmanifest)$/.test(url.pathname)) {
     event.respondWith(fetch(req).then((res) => {
-      if (res.ok && url.pathname !== "/config.json") { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req.mode === "navigate" ? "/index.html" : req, copy)); }
+      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req.mode === "navigate" ? "/index.html" : req, copy)); }
       return res;
     }).catch(() => caches.match(req.mode === "navigate" ? "/index.html" : req).then((r) => r || caches.match(req))));
     return;

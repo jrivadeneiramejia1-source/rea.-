@@ -28,12 +28,12 @@ const notifier = http.createServer(async (req, res) => {
   res.writeHead(r.status, Object.fromEntries(r.headers)); res.end(await r.text());
 }).listen(8787);
 
-const configPath = new URL("../public/config.json", import.meta.url);
-writeFileSync(configPath, JSON.stringify({
+const configPath = new URL("../public/config.js", import.meta.url);
+writeFileSync(configPath, "self.LANZADOR_CONFIG = " + JSON.stringify({
   firebase: { apiKey: "demo-key", authDomain: "demo-equipos.firebaseapp.com", projectId: "demo-equipos", appId: "1:1:web:1", messagingSenderId: "1" },
   emulators: { auth: "http://127.0.0.1:9099", firestore: "127.0.0.1:8080" },
   notifyUrl: "http://127.0.0.1:8787", vapidKey: "prueba",
-}));
+}) + ";\n");
 
 const admin = (path, init = {}) => fetch(`${FS}/${path}`, { ...init, headers: { authorization: "Bearer owner", "content-type": "application/json" } }).then((r) => r.json());
 const waitFor = async (fn, label, ms = 15000) => {
