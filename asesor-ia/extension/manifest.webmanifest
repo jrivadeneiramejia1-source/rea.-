@@ -1,0 +1,16 @@
+{
+  "name": "Asesor IA",
+  "short_name": "Asesor IA",
+  "description": "Estima tokens, recomienda modelo y mejora tu prompt antes de enviarlo.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14212B",
+  "theme_color": "#14212B",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Asesor IA</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Estima tokens, recomienda modelo y mejora tu prompt antes de enviarlo a Claude, ChatGPT, Gemini o DeepSeek.">
+<meta name="description" content="Estima tokens, recomienda modelo, te hace preguntas y mejora tu prompt antes de enviarlo a Claude, ChatGPT, Gemini o DeepSeek.">
 <meta name="theme-color" content="#14212B">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -14,10 +14,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500&display=swap">
 <style>
-/* Layout: una sola columna angosta (sirve en pantalla dividida del teléfono); el medidor de nivel es el único elemento fuerte. */
+/* Layout: una sola columna angosta (sirve en pantalla dividida y en el panel lateral de Chrome); el medidor de nivel es el único elemento fuerte. */
 :root {
   --bg: #eef2f4; --surface: #ffffff; --ink: #14212b; --muted: #556672; --line: #d3dce1;
-  --accent: #b86a00; --accent-ink: #ffffff;
+  --accent: #b86a00; --accent-ink: #ffffff; --live: #c0392b;
   --l1: #2d8653; --l2: #2f68ad; --l3: #b86a00; --l4: #bf3b28; --off: #dfe6ea;
   --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -26,24 +26,29 @@
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0e161c; --surface: #15212a; --ink: #e4ecf0; --muted: #93a5b1; --line: #293a45;
-  --accent: #f0a63a; --accent-ink: #14212b;
+  --accent: #f0a63a; --accent-ink: #14212b; --live: #f07a62;
   --l1: #4cc184; --l2: #6aa6ec; --l3: #f0a63a; --l4: #f07a62; --off: #22323c; color-scheme: dark; } }
 :root[data-theme="dark"] {
   --bg: #0e161c; --surface: #15212a; --ink: #e4ecf0; --muted: #93a5b1; --line: #293a45;
-  --accent: #f0a63a; --accent-ink: #14212b;
+  --accent: #f0a63a; --accent-ink: #14212b; --live: #f07a62;
   --l1: #4cc184; --l2: #6aa6ec; --l3: #f0a63a; --l4: #f07a62; --off: #22323c; color-scheme: dark; }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body { background: var(--bg); color: var(--ink); font: 16px/1.5 var(--body);
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 main { max-width: 640px; margin: 0 auto; padding-block: 20px 40px; display: grid; gap: 18px; }
-h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
 h1 { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
 h2 { font-size: 1.05rem; font-weight: 600; }
+h3 { font-size: 0.95rem; font-weight: 600; }
 .sub { color: var(--muted); margin: 4px 0 0; }
 .label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
 .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+.banner { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; padding: 12px 14px; border-radius: var(--r); border: 1px solid var(--accent); background: var(--surface); }
+.banner p { margin: 0; flex: 1 1 220px; }
 
 .apps { display: flex; flex-wrap: wrap; gap: 8px; border: 0; padding: 0; margin: 0; }
 .apps legend { margin-bottom: 6px; }
@@ -53,22 +58,39 @@ h2 { font-size: 1.05rem; font-weight: 600; }
 .apps input:focus-visible + label { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .field { display: grid; gap: 6px; }
-textarea, select { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px; }
-textarea { min-height: 150px; resize: vertical; }
-textarea:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+textarea, select, input[type="text"] { width: 100%; font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; }
+textarea { min-height: 140px; resize: vertical; }
+textarea:focus-visible, select:focus-visible, input:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 .hint { font-size: 0.85rem; color: var(--muted); margin: 0; }
 
-.result { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; }
+.voice { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.voice .hint { flex: 1 1 200px; }
+button { font: inherit; font-weight: 700; border-radius: var(--r); padding: 9px 14px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: inline-flex; gap: 6px; align-items: center; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.small { padding: 6px 10px; font-size: 0.85rem; }
+button.live { border-color: var(--live); color: var(--live); }
+button svg { width: 18px; height: 18px; flex: none; }
+button.icon { padding: 8px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
 .meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
 .meter span { height: 10px; border-radius: 3px; background: var(--off); }
 .meter-legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 0.72rem; color: var(--muted); }
-.meter-legend b { color: var(--ink); }
 .pick { display: grid; gap: 2px; }
 .pick .model { font-family: var(--display); font-size: 2rem; font-weight: 800; line-height: 1.1; letter-spacing: -0.02em; }
 .pick .mode { color: var(--muted); }
 .pill { justify-self: start; font-weight: 700; font-size: 0.8rem; padding: 3px 10px; border-radius: 999px; color: var(--bg); }
+.head-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .note { font-size: 0.85rem; color: var(--muted); margin: 0; }
+
+.qs { display: grid; gap: 12px; }
+.q { display: grid; gap: 6px; }
+.q label { font-weight: 700; }
+.q .row { display: flex; gap: 6px; }
+.q .row input { flex: 1; min-width: 0; }
+.known { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 0.82rem; padding: 3px 9px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); }
 
 table { width: 100%; border-collapse: collapse; }
 td { padding: 6px 0; border-bottom: 1px solid var(--line); }
@@ -80,21 +102,35 @@ tr.total td { border-bottom: 0; font-weight: 700; padding-top: 10px; }
 .chk { font-size: 0.82rem; padding: 3px 9px; border-radius: 6px; border: 1px solid var(--line); }
 .chk.ok { color: var(--l1); border-color: var(--l1); }
 .chk.no { color: var(--l4); border-color: var(--l4); }
-#improved { min-height: 170px; font-family: var(--mono); font-size: 0.85rem; }
+#improved, #personal, #exportCode, #importCode { font-family: var(--mono); font-size: 0.85rem; }
+#improved { min-height: 190px; }
 .btns { display: flex; flex-wrap: wrap; gap: 8px; }
-button { font: inherit; font-weight: 700; border-radius: var(--r); padding: 10px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
-button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .status { min-height: 1.4em; font-size: 0.85rem; color: var(--l1); margin: 0; }
 
 .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .stats div { text-align: center; padding: 8px 4px; border-radius: 8px; background: var(--surface); border: 1px solid var(--line); }
 .stats .num { display: block; font-size: 1.3rem; }
 .stats small { color: var(--muted); }
-details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; }
-summary { cursor: pointer; font-weight: 700; }
-details ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 6px; }
+.facts { list-style: none; padding: 0; }
+.facts li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.facts li span { min-width: 0; overflow-wrap: anywhere; }
+
+details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; }
+details[open] { display: grid; gap: 12px; }
+summary { cursor: pointer; font-weight: 700; font-family: var(--display); font-size: 1.05rem; }
+details ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.form { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.form .wide { grid-column: 1 / -1; }
+.form textarea { min-height: 70px; }
+.check { display: flex; gap: 8px; align-items: flex-start; }
+.check input { margin-top: 5px; }
+.sep { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
 footer { font-size: 0.8rem; color: var(--muted); }
-@media (prefers-reduced-motion: no-preference) { .meter span { transition: background-color .25s ease; } }
+@media (prefers-reduced-motion: no-preference) {
+  .meter span { transition: background-color .25s ease; }
+  button.live { animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+}
 </style>
 </head>
 <body>
@@ -103,6 +139,15 @@ footer { font-size: 0.8rem; color: var(--muted); }
     <h1>Asesor IA</h1>
     <p class="sub">Revisa tu pedido antes de enviarlo y gasta menos límite de uso.</p>
   </header>
+
+  <div class="banner" id="profileBanner" hidden>
+    <p>Cuéntame de ti en 1 minuto y tus prompts saldrán con tu contexto y tus gustos.</p>
+    <button class="primary small" id="openProfile" type="button">Llenar mi perfil</button>
+  </div>
+  <div class="banner" id="micBanner" hidden>
+    <p>Para dictar desde el panel lateral, Chrome necesita que des permiso al micrófono una vez.</p>
+    <button class="primary small" id="grantMic" type="button">Permitir micrófono</button>
+  </div>
 
   <fieldset class="apps" id="apps">
     <legend class="label">¿Dónde lo vas a pedir?</legend>
@@ -115,7 +160,12 @@ footer { font-size: 0.8rem; color: var(--muted); }
   <div class="field">
     <label class="label" for="prompt">Lo que le vas a pedir</label>
     <textarea id="prompt" spellcheck="true"></textarea>
-    <p class="hint" id="sampleHint">Texto de ejemplo. Bórralo y escribe o pega el tuyo.</p>
+    <p class="hint" id="sampleHint">Texto de ejemplo. Bórralo y escribe, pega o dicta el tuyo.</p>
+    <div class="voice">
+      <button id="dictate" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Dictar</span></button>
+      <button id="talk" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16v10H9l-5 4z"/></svg><span>Conversar por voz</span></button>
+      <p class="hint" id="voiceStatus"></p>
+    </div>
   </div>
 
   <div class="field">
@@ -129,13 +179,16 @@ footer { font-size: 0.8rem; color: var(--muted); }
     </select>
   </div>
 
-  <section class="result" aria-live="polite">
+  <section class="card" aria-live="polite">
     <div>
       <div class="meter" id="meter"><span></span><span></span><span></span><span></span></div>
       <div class="meter-legend"><span>Simple</span><span>Normal</span><span>Compleja</span><span>Experta</span></div>
     </div>
     <div class="pick">
-      <span class="pill" id="levelPill">Normal</span>
+      <div class="head-row">
+        <span class="pill" id="levelPill">Normal</span>
+        <button class="small" id="speak" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg><span>Escuchar</span></button>
+      </div>
       <span class="label" id="useLabel">Usa en Claude</span>
       <span class="model" id="model">Sonnet 5.5</span>
       <span class="mode" id="mode"></span>
@@ -147,22 +200,35 @@ footer { font-size: 0.8rem; color: var(--muted); }
     <p class="note" id="provNote"></p>
   </section>
 
-  <section class="result">
+  <section class="card" id="qCard" hidden>
+    <div>
+      <h2>Antes de enviarlo, respóndeme</h2>
+      <p class="hint">Cada respuesta entra a tu prompt. Las que sirven para siempre las recuerdo.</p>
+    </div>
+    <div class="qs" id="qs"></div>
+    <div id="knownBox" hidden>
+      <span class="label">Ya sé de ti</span>
+      <div class="known" id="known"></div>
+    </div>
+  </section>
+
+  <section class="card">
     <h2>Tokens estimados de este mensaje</h2>
     <table>
       <tbody>
         <tr><td>Tu mensaje</td><td class="num" id="tIn"></td></tr>
+        <tr><td>Prompt mejorado</td><td class="num" id="tImp"></td></tr>
         <tr><td>Historial que se reenvía</td><td class="num" id="tCtx"></td></tr>
         <tr><td>Respuesta aprox.</td><td class="num" id="tOut"></td></tr>
         <tr><td>Pensamiento aprox.</td><td class="num" id="tThink"></td></tr>
-        <tr class="total"><td>Total</td><td class="num" id="tTotal"></td></tr>
+        <tr class="total"><td>Total con el prompt mejorado</td><td class="num" id="tTotal"></td></tr>
       </tbody>
     </table>
     <p class="save" id="vsOpus" hidden></p>
-    <p class="note">Estimación de ±30%. Las apps no muestran el conteo real.</p>
+    <p class="note">Estimación de ±30%. El prompt mejorado es un poco más largo, pero evita mensajes de aclaración, que reenvían todo el historial.</p>
   </section>
 
-  <section class="result">
+  <section class="card">
     <h2>Prompt mejorado</h2>
     <div class="checks" id="checks"></div>
     <textarea id="improved" aria-label="Prompt mejorado" spellcheck="false"></textarea>
@@ -174,7 +240,7 @@ footer { font-size: 0.8rem; color: var(--muted); }
     <p class="status" id="status"></p>
   </section>
 
-  <section class="result">
+  <section class="card">
     <h2>Para gastar menos</h2>
     <ul id="tips"></ul>
   </section>
@@ -182,124 +248,60 @@ footer { font-size: 0.8rem; color: var(--muted); }
   <section class="field">
     <h2>Tu entrenamiento</h2>
     <div class="stats" id="stats"></div>
+    <ul id="insights"></ul>
     <p class="hint" id="statsText"></p>
+    <div id="factsBox" hidden>
+      <span class="label">Lo que recuerdo de ti</span>
+      <ul class="facts" id="facts"></ul>
+    </div>
   </section>
+
+  <details id="profileBox">
+    <summary>Mi perfil</summary>
+    <p class="hint">Esto se guarda solo en este dispositivo. Úsalo para que cada prompt lleve tu contexto y tus gustos.</p>
+    <div class="form">
+      <div class="field"><label for="p-nombre">¿Cómo te llamas?</label><input type="text" id="p-nombre" autocomplete="given-name"></div>
+      <div class="field"><label for="p-rol">¿A qué te dedicas o qué estudias?</label><input type="text" id="p-rol" placeholder="Ej.: aprendiz de soporte técnico"></div>
+      <div class="field"><label for="p-nivel">Tu nivel técnico</label>
+        <select id="p-nivel"><option value="basico">Básico</option><option value="intermedio" selected>Intermedio</option><option value="avanzado">Avanzado</option></select></div>
+      <div class="field"><label for="p-sistema">Tu equipo y sistema</label><input type="text" id="p-sistema" placeholder="Ej.: Windows 11, PowerShell 7, Android"></div>
+      <div class="field wide"><label for="p-herramientas">Herramientas que más usas</label><input type="text" id="p-herramientas" placeholder="Ej.: n8n, Excel, Gemini, Telegram"></div>
+      <div class="field wide"><label for="p-rutas">Rutas o carpetas que usas seguido</label><input type="text" id="p-rutas" placeholder="Ej.: C:\Scripts, D:\Clientes"></div>
+      <div class="field wide"><label for="p-metas">Tus metas</label><textarea id="p-metas" placeholder="Ej.: terminar el SENA, montar mis agentes en n8n, conseguir clientes de mantenimiento"></textarea></div>
+      <div class="field wide"><label for="p-estilo">Cómo quieres las respuestas (tus gustos)</label><textarea id="p-estilo" placeholder="Ej.: en español, breve, sin introducción, comandos listos para copiar"></textarea></div>
+      <div class="field wide"><label for="p-noQuiero">Lo que NO quieres que haga la IA</label><input type="text" id="p-noQuiero" placeholder="Ej.: repetir lo que dije, ofrecer cosas extra"></div>
+      <label class="check wide" for="p-enApp"><input type="checkbox" id="p-enApp"><span>Ya pegué mi perfil en la personalización de la app. No lo repitas en cada prompt.</span></label>
+    </div>
+    <p class="status" id="profileStatus"></p>
+    <hr class="sep">
+    <h3>Pega esto una vez en tu app</h3>
+    <p class="hint" id="whereToPaste"></p>
+    <textarea id="personal" aria-label="Texto para la personalización de la app" readonly></textarea>
+    <div class="btns"><button class="small" id="copyPersonal" type="button">Copiar texto</button><span class="hint num" id="personalCount"></span></div>
+    <hr class="sep">
+    <h3>Pasar mi perfil a otro dispositivo</h3>
+    <p class="hint">Copia este código y pégalo en el Asesor IA del teléfono o del PC.</p>
+    <textarea id="exportCode" aria-label="Código de mi perfil" readonly></textarea>
+    <div class="btns"><button class="small" id="copyCode" type="button">Copiar código</button></div>
+    <label class="label" for="importCode">Cargar un código</label>
+    <textarea id="importCode" placeholder="Pega aquí el código ASESOR1:…"></textarea>
+    <div class="btns"><button class="small" id="loadCode" type="button">Cargar perfil</button><button class="small" id="wipe" type="button">Borrar perfil y aprendizaje</button></div>
+    <p class="status" id="codeStatus"></p>
+  </details>
 
   <details>
     <summary>Cómo tenerla al lado del chat</summary>
     <ol>
-      <li><b>Android:</b> abre esta página en Chrome → menú ⋮ → «Agregar a la pantalla principal» (Add to Home screen). Luego usa pantalla dividida (Split screen) o ventana emergente (Pop-up view) con la app de Claude, ChatGPT o Gemini.</li>
-      <li><b>iPhone:</b> Safari → Compartir → «Agregar a inicio» (Add to Home Screen). iOS no permite ventanas flotantes; cambia entre apps.</li>
-      <li><b>PC:</b> instala la extensión: aparece un panel pequeño al lado del chat en claude.ai, chatgpt.com, gemini.google.com y chat.deepseek.com y lee lo que escribes.</li>
+      <li><b>PC con Google Chrome:</b> instala la extensión. Fija su ícono en la barra (botón del rompecabezas → chincheta) y tócalo: se abre esta misma app en el panel lateral (Side panel). Además, en claude.ai, chatgpt.com, gemini.google.com y chat.deepseek.com aparece la pestaña «Asesor IA», que lee lo que escribes.</li>
+      <li><b>Android con Chrome:</b> Chrome no instala extensiones en el teléfono. Usa esta app: menú ⋮ → «Agregar a la pantalla principal» (Add to Home screen), y ábrela en pantalla dividida (Split screen) con la app de IA.</li>
+      <li><b>Voz en el teléfono:</b> si el botón Dictar no funciona aquí, usa el micrófono de tu teclado (Gboard). Funciona en cualquier caja de texto.</li>
     </ol>
   </details>
 
-  <footer>Todo se calcula en tu dispositivo: tu texto no sale de aquí. Modelos según los menús de octubre de 2026; pueden cambiar.</footer>
+  <footer>Todo se calcula en tu dispositivo. El dictado de Chrome envía tu voz a Google para convertirla en texto. Modelos según los menús de octubre de 2026; pueden cambiar.</footer>
 </main>
 
 <script src="advisor.js"></script>
-<script>
-(function () {
-  "use strict";
-  var A = window.AsesorIA;
-  var $ = function (id) { return document.getElementById(id); };
-  var SAMPLE = "Hazme un script en PowerShell 7 que liste los programas instalados y los guarde en C:\\Reportes\\programas.csv";
-  var COLORS = ["", "var(--l1)", "var(--l2)", "var(--l3)", "var(--l4)"];
-  var store = {
-    get: function (k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-    set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
-  };
-  var last = null, timer = null;
-
-  function provider() { var c = document.querySelector('input[name="app"]:checked'); return c ? c.value : "claude"; }
-
-  function li(list, items) {
-    list.textContent = "";
-    items.forEach(function (t) { var e = document.createElement("li"); e.textContent = t; list.appendChild(e); });
-  }
-
-  function render() {
-    var text = $("prompt").value;
-    var r = A.analyze(text, { provider: provider(), contextTokens: A.contextFromMessages($("ctx").value) });
-    last = r;
-    var spans = $("meter").children;
-    for (var i = 0; i < 4; i++) spans[i].style.background = i < r.level ? COLORS[r.level] : "";
-    $("levelPill").textContent = "Tarea " + r.levelName.toLowerCase();
-    $("levelPill").style.background = COLORS[r.level];
-    $("useLabel").textContent = "Usa en " + r.providerLabel;
-    $("model").textContent = r.rec.model;
-    $("mode").textContent = r.rec.mode;
-    li($("why"), [r.levelShort].concat(r.why));
-    $("provNote").textContent = r.providerNote;
-    $("tIn").textContent = A.fmt(r.tokens.input);
-    $("tCtx").textContent = A.fmt(r.tokens.context);
-    $("tOut").textContent = "~" + A.fmt(r.tokens.output);
-    $("tThink").textContent = r.tokens.thinking ? "~" + A.fmt(r.tokens.thinking) : "0";
-    $("tTotal").textContent = "~" + A.fmt(r.tokens.total);
-    if (r.vsOpus) {
-      $("vsOpus").hidden = false;
-      $("vsOpus").textContent = "Si hicieras esto con Opus 5.5 pagarías unas " + r.vsOpus + " veces más por token que con " + r.rec.model + " (precio de API).";
-    } else { $("vsOpus").hidden = true; }
-    var checks = $("checks"); checks.textContent = "";
-    r.audit.filter(function (a) { return a.needed; }).forEach(function (a) {
-      var s = document.createElement("span");
-      s.className = "chk " + (a.ok ? "ok" : "no");
-      s.textContent = (a.ok ? "✓ " : "✗ ") + a.label;
-      checks.appendChild(s);
-    });
-    $("improved").value = text.trim() ? r.improved : "";
-    li($("tips"), r.tips);
-    $("sampleHint").hidden = text !== SAMPLE;
-  }
-
-  function schedule() { clearTimeout(timer); timer = setTimeout(render, 150); }
-
-  function renderStats() {
-    var s = store.get("asesor.stats", [0, 0, 0, 0, 0]);
-    var total = s[1] + s[2] + s[3] + s[4];
-    var box = $("stats"); box.textContent = "";
-    ["Simple", "Normal", "Compleja", "Experta"].forEach(function (n, i) {
-      var d = document.createElement("div");
-      d.innerHTML = '<span class="num"></span><small></small>';
-      d.firstChild.textContent = s[i + 1];
-      d.lastChild.textContent = n;
-      box.appendChild(d);
-    });
-    $("statsText").textContent = total
-      ? Math.round(((s[1] + s[2] + s[3]) / total) * 100) + "% de tus " + total + (total === 1 ? " tarea copiada" : " tareas copiadas") + " no necesitaba Opus."
-      : "Cada vez que copies un prompt se suma aquí. Así ves cuántas tareas de verdad necesitaban Opus.";
-  }
-
-  function flash(msg) { $("status").textContent = msg; setTimeout(function () { $("status").textContent = ""; }, 2500); }
-
-  $("copy").addEventListener("click", function () {
-    var t = $("improved");
-    if (!t.value) { flash("Escribe primero tu pedido."); return; }
-    var count = function () {
-      var s = store.get("asesor.stats", [0, 0, 0, 0, 0]); s[last.level]++; store.set("asesor.stats", s); renderStats();
-    };
-    var fallback = function () { t.focus(); t.select(); flash("Seleccionado. Cópialo con Ctrl+C o mantén presionado → Copiar."); count(); };
-    try {
-      navigator.clipboard.writeText(t.value).then(function () { flash("Copiado. Pégalo en " + last.providerLabel + " con " + last.rec.model + "."); count(); }, fallback);
-    } catch (e) { fallback(); }
-  });
-  $("useIt").addEventListener("click", function () {
-    if (!$("improved").value) return;
-    $("prompt").value = $("improved").value; render(); flash("Listo. Llena los [corchetes] en tu texto.");
-  });
-  $("prompt").addEventListener("input", function () { store.set("asesor.draft", $("prompt").value); schedule(); });
-  $("ctx").addEventListener("change", render);
-  $("apps").addEventListener("change", function () { store.set("asesor.app", provider()); render(); });
-
-  var savedApp = store.get("asesor.app", "claude");
-  var radio = document.getElementById("app-" + savedApp); if (radio) radio.checked = true;
-  $("prompt").value = store.get("asesor.draft", "") || SAMPLE;
-  render(); renderStats();
-
-  if ("serviceWorker" in navigator && /^https:|^http:\/\/localhost/.test(location.href) && !/claude\.ai|claudeusercontent/.test(location.hostname)) {
-    try { navigator.serviceWorker.register("sw.js").catch(function () {}); } catch (e) {}
-  }
-})();
-</script>
+<script src="app.js"></script>
 </body>
 </html>

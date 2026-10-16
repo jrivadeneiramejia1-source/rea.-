@@ -112,6 +112,9 @@ ul { margin:0; padding-left:16px; display:grid; gap:3px; }
 button { font:700 12px system-ui,sans-serif; border-radius:7px; padding:7px 10px; cursor:pointer; border:1px solid var(--line); background:var(--bg); color:var(--ink); }
 button.p { background:var(--accent); color:var(--acc-ink); border-color:var(--accent); }
 button:focus-visible, .tab:focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+.qbox { display:grid; gap:6px; }
+.ql { display:grid; gap:3px; font-weight:600; }
+.qi { font:13px system-ui,sans-serif; padding:6px 8px; border-radius:6px; border:1px solid var(--line); background:var(--soft); color:var(--ink); width:100%; }
 .status { min-height:1.2em; font-size:11.5px; color:#2d8653; margin:0; }
 .x { border:0; background:none; font-size:16px; padding:0 4px; color:var(--muted); }
 </style>
@@ -129,16 +132,27 @@ button:focus-visible, .tab:focus-visible { outline:2px solid var(--accent); outl
     </tbody></table>
     <p class="note" id="vs"></p>
     <div class="chks" id="chks"></div>
+    <div class="qbox" id="qbox"></div>
+    <p class="note" id="known"></p>
     <div class="btns"><button class="p" id="ins" type="button">Poner prompt mejorado</button><button id="cp" type="button">Copiar</button></div>
     <p class="status" id="status"></p>
     <div><div class="lbl">Para gastar menos</div><ul id="tips"></ul></div>
-    <p class="note">Estimación ±30%. Uso real en Claude: Configuración → Uso (Settings → Usage).</p>
+    <p class="note">Estimación ±30%. Uso real en Claude: Configuración → Uso (Settings → Usage). Perfil, voz y entrenamiento: toca el ícono de Asesor IA en la barra de Chrome.</p>
   </div>
 </div>`;
   (document.body || document.documentElement).appendChild(hostEl);
   const $ = (id) => root.getElementById(id);
 
   let open = false, last = null, lastKey = "";
+  let profile = null, learned = null, answers = {};
+  Promise.all([st.get("asesor.profile", null), st.get("asesor.learned", null)]).then(([p, l]) => { profile = p; learned = l; tick(true); });
+  try {
+    ext.storage.onChanged.addListener((ch) => {
+      if (ch["asesor.profile"]) profile = ch["asesor.profile"].newValue;
+      if (ch["asesor.learned"]) learned = ch["asesor.learned"].newValue;
+      tick(true);
+    });
+  } catch (e) {}
 
   function setOpen(v) {
     open = v;
@@ -157,10 +171,10 @@ button:focus-visible, .tab:focus-visible { outline:2px solid var(--accent); outl
     const el = findInput();
     const text = readInput(el);
     const ctx = open ? conversationTokens(text) : 0;
-    const key = text + "|" + ctx;
+    const key = text + "|" + ctx + "|" + JSON.stringify(answers);
     if (!force && key === lastKey) return;
     lastKey = key;
-    const r = A.analyze(text, { provider: PROVIDER, contextTokens: ctx });
+    const r = A.analyze(text, { provider: PROVIDER, contextTokens: ctx, profile, learned, answers });
     last = r;
     $("dot").style.background = text.trim() ? COLORS[r.level] : COLORS[0];
     if (!open) return;
@@ -188,13 +202,38 @@ button:focus-visible, .tab:focus-visible { outline:2px solid var(--accent); outl
       s.textContent = (a.ok ? "✓ " : "✗ ") + a.label;
       ch.appendChild(s);
     }
+    renderQuestions(r);
     li($("tips"), r.tips.slice(0, 3));
+  }
+
+  // Preguntas: se redibujan solo si cambian, para no borrar lo que escribes.
+  function renderQuestions(r) {
+    const box = $("qbox");
+    const qs = r.questions;
+    const key = qs.map((q) => q.id).join(",");
+    if (box.dataset.key !== key) {
+      box.dataset.key = key;
+      box.textContent = "";
+      if (qs.length) { const h = document.createElement("div"); h.className = "lbl"; h.textContent = "Respóndeme y tu prompt queda mejor"; box.appendChild(h); }
+      for (const q of qs) {
+        const lab = document.createElement("label"); lab.className = "ql"; lab.textContent = q.q;
+        const inp = document.createElement("input"); inp.type = "text"; inp.className = "qi"; inp.value = answers[q.id] || "";
+        inp.addEventListener("input", () => { answers[q.id] = inp.value; });
+        inp.addEventListener("keydown", (e) => e.stopPropagation(), true);
+        lab.appendChild(inp); box.appendChild(lab);
+      }
+    }
+    const known = r.remembered.map((k) => k.label + ": " + k.value);
+    $("known").textContent = known.length ? "Ya sé: " + known.join(" · ") : "";
   }
 
   function flash(m) { $("status").textContent = m; setTimeout(() => ($("status").textContent = ""), 2500); }
   async function count() {
-    const s = await st.get("asesor.stats", [0, 0, 0, 0, 0]);
-    s[last.level]++; st.set("asesor.stats", s);
+    const l = await st.get("asesor.learned", null);
+    learned = A.learn(l, last, last.answered);
+    st.set("asesor.learned", learned);
+    answers = {};
+    $("qbox").dataset.key = "";
   }
 
   $("tab").addEventListener("click", () => setOpen(true));

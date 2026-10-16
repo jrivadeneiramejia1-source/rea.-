@@ -1,10 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Asesor IA",
-  "version": "1.0.0",
-  "description": "Estima tokens, recomienda modelo y mejora tu prompt en Claude, ChatGPT, Gemini y DeepSeek. Todo local.",
+  "version": "2.0.0",
+  "description": "Recomienda modelo, estima tokens, te pregunta lo que falta y mejora tu prompt. Aprende de ti. Todo local.",
+  "minimum_chrome_version": "116",
   "icons": { "16": "icon-16.png", "48": "icon-48.png", "128": "icon-128.png" },
-  "permissions": ["storage"],
+  "action": { "default_title": "Abrir Asesor IA en el panel lateral" },
+  "permissions": ["storage", "sidePanel"],
+  "background": { "service_worker": "bg.js" },
+  "side_panel": { "default_path": "index.html" },
   "content_scripts": [
     {
       "matches": [
@@ -17,9 +21,5 @@
       "js": ["advisor.js", "content.js"],
       "run_at": "document_idle"
     }
-  ],
-  "browser_specific_settings": {
-    "gecko": { "id": "asesor-ia@jeiler.local", "strict_min_version": "128.0" },
-    "gecko_android": { "strict_min_version": "128.0" }
-  }
+  ]
 }

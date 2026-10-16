@@ -4,7 +4,10 @@ Te dice, antes de enviar un pedido a Claude, ChatGPT, Gemini o DeepSeek:
 
 - tokens aproximados (tu mensaje + historial que se reenvía + respuesta),
 - qué modelo y qué nivel de pensamiento usar (Simple → Normal → Compleja → Experta),
-- qué le falta a tu prompt, y te da una versión mejorada lista para copiar.
+- qué le falta a tu prompt, te hace preguntas según lo que escribes y te da una versión mejorada lista para copiar,
+- tu perfil (rol, equipo, metas, gustos) para que cada prompt lleve tu contexto,
+- aprende de ti: recuerda datos (ej. tu versión de n8n) para no volver a preguntarlos y te da consejos según cómo pides las cosas,
+- voz: dictado y modo conversación (te lee la recomendación y te hace las preguntas).
 
 Todo corre en tu dispositivo. No usa API ni gasta tokens.
 
@@ -12,22 +15,29 @@ Todo corre en tu dispositivo. No usa API ni gasta tokens.
 
 | Carpeta | Dónde corre |
 |---|---|
-| `index.html` + `advisor.js` | Teléfono y PC (app web instalable) |
-| `extension/` | Chrome, Edge o Firefox en PC: panel al lado del chat |
+| `index.html` + `app.js` + `advisor.js` | Teléfono y PC (app web instalable) |
+| `extension/` | Google Chrome en PC: panel lateral + pestaña dentro del chat |
 
-`advisor.js` es la lógica compartida. Si la cambias, cópiala también a `extension/advisor.js`.
+`advisor.js` es la lógica; `app.js` la interfaz. Después de cambiarlos corre `node build.mjs` para copiarlos a la extensión y rehacer el `.zip`.
 
 ## Instalar la extensión (PC)
 
-1. Chrome o Edge → `chrome://extensions` (Edge: `edge://extensions`).
+1. Google Chrome → `chrome://extensions`.
 2. Activa «Modo de desarrollador» (Developer mode).
 3. «Cargar descomprimida» (Load unpacked) → elige la carpeta `asesor-ia/extension`.
-4. Abre claude.ai, chatgpt.com, gemini.google.com o chat.deepseek.com: aparece la pestaña «Asesor IA» a la derecha.
+4. Fija el ícono (rompecabezas → chincheta). Al tocarlo se abre la app en el panel lateral (Side panel): ahí llenas tu perfil y usas la voz.
+5. En claude.ai, chatgpt.com, gemini.google.com o chat.deepseek.com aparece la pestaña «Asesor IA» a la derecha: lee lo que escribes, te pregunta lo que falta y pega el prompt mejorado.
+6. Para dictar en el panel lateral, la primera vez toca «Permitir micrófono».
 
 ## Instalar en el teléfono
 
 Abre la app web en Chrome → menú ⋮ → «Agregar a la pantalla principal» (Add to Home screen).
 Para tenerla al lado de la app de IA usa pantalla dividida (Split screen) o ventana emergente (Pop-up view).
+
+## Voz
+
+- Usa el dictado de Chrome (Web Speech API): tu voz se envía a Google para pasarla a texto. Necesita internet.
+- Si el botón Dictar no funciona (por ejemplo en la versión publicada en claude.ai), usa el micrófono del teclado (Gboard).
 
 ## Límites
 
