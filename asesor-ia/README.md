@@ -13,7 +13,7 @@ Todo corre en tu dispositivo. No usa API ni gasta tokens.
 
 ## Versión 3 (artifact)
 
-`artifact/asesor-ia.html` es la versión actual publicada en claude.ai. Es un solo archivo con React 18, Tailwind 3.4.17 y lucide-react desde CDN:
+`artifact/asesor-ia.html` es la versión actual publicada en claude.ai. Es un solo archivo: Tailwind 3.4.17 va compilado adentro y React 18, htm y lucide-react se cargan con respaldo (cdnjs → jsdelivr → unpkg; los íconos son opcionales). Si cambias clases de Tailwind, corre `node build.mjs` en `artifact/` (requiere `npm i -D tailwindcss@3.4.17`).
 
 - Motor local (`<script id="engine">`): detecta el tipo de tarea, hace de 1 a 3 preguntas (modo entrevista), arma el prompt en XML de Anthropic, CO-STAR o compacto, decide si agregar razonamiento paso a paso y lo evalúa de 0 a 100 (claridad, contexto, restricciones).
 - Memoria en `localStorage` (`asesor.v3`): historial, favoritos, plantillas, preferencias y perfil. Los favoritos con la respuesta que te gustó se usan como ejemplos (few-shot) en pedidos parecidos.
