@@ -770,10 +770,13 @@
     const answerRequest = (r) => pickScript(async (s) => {
       const other = membersRef.current.find((m) => m.uid === r.from);
       if (!other) { toast("Esa persona ya no está en el equipo."); return; }
-      await send(other, { kind: "script", text: "Para tu pedido: «" + r.text.slice(0, 80) + "»", script: s, requestId: r.id }).then(() => toast("Script enviado a " + other.name + "."), () => {});
+      await send(other, { kind: "script", text: "Para tu pedido: «" + r.text.slice(0, 80) + "»", script: s, requestId: r.id }).then(() => toast("Script enviado a " + other.name + ". Toca para ver el chat.", { onOpen: () => openChat(other.uid), ms: 7000 }), () => {});
     }, "¿Qué script le envías?");
     const askPerson = (m) => ask("Pedir un script a " + m.name, async (t) => { await send(m, { kind: "pedido", text: t }); openChat(m.uid); }, { placeholder: "Ej.: ¿tienes uno para reparar Windows Update?", cta: "Pedir" });
-    const sendTo = (s) => push({ type: "pickMember", title: "¿A quién le envías «" + s.name + "»?", cb: async (m) => { await send(m, { kind: "script", text: "", script: s }).then(() => toast("Enviado a " + m.name + "."), () => {}); } });
+    const sendTo = (s) => push({ type: "pickMember", title: "¿A quién le envías «" + s.name + "»?", cb: async (m) => {
+      // Como en WhatsApp: después de enviar, se abre el chat donde quedó el script.
+      await send(m, { kind: "script", text: "", script: s }).then(() => { openChat(m.uid); toast("Enviado a " + m.name + ". Quedó en su chat (pestaña Chats)."); }, () => {});
+    } });
     const share = (s) => push({ type: "share", script: s });
     const openScript = (s, from) => push({ type: "script", script: s, editable: !from && library && library.some((x) => x.id === s.id), from: from });
     const newScript = () => push({ type: "script", script: G.newScript("ps5"), editable: true });
@@ -864,6 +867,7 @@
         <div className="max-w-3xl mx-auto flex items-center gap-3 px-3 py-2">
           <img src="/icono-192.png" alt="" className="w-8 h-8 rounded-lg" />
           <div className="min-w-0 flex-1"><p className="font-semibold truncate leading-tight">${team ? team.name : "Lanzador"}</p><p className="text-xs text-mute truncate">${netOk ? members.filter((m) => E.presence(m, now).online).length + " conectado(s)" : "Sin internet · se enviará al reconectar"}</p></div>
+          <a href="/asesor/" className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-mute hover:text-ink hover:bg-panel" aria-label="Abrir el Asesor IA"><${Icon} name="Sparkles" size=${16} className="text-acc" /><span className="hidden sm:inline">Asesor IA</span></a>
           <button type="button" onClick=${() => push({ type: "profile" })} className="flex items-center gap-2 rounded-full pl-2 pr-1 py-1 hover:bg-panel" aria-label="Mi perfil">
             <span className="text-right hidden sm:block"><span className="block text-sm leading-tight">${profile.name}</span><span className="block text-xs text-mute leading-tight">${E.STATUSES[profile.status]}</span></span>
             <${Avatar} person=${meMember} status=${{ key: profile.status, label: E.STATUSES[profile.status] }} size=${36} />

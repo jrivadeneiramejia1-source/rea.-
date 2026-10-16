@@ -91,14 +91,16 @@
 
   // ---------- Mensajes nuevos mientras usas el Asesor ----------
   function watchUnread(E) {
-    const pill = el("a", `position:fixed;left:12px;bottom:12px;z-index:9998;display:none;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:${C.acc};color:${C.accInk};font:600 14px system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.4)`);
+    const pill = el("a", `position:fixed;right:12px;top:calc(12px + env(safe-area-inset-top, 0px));z-index:9998;display:none;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background:${C.acc};color:${C.accInk};font:600 14px system-ui,sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.4)`);
     pill.href = "/";
     document.body.appendChild(pill);
     let first = true;
     E.watchInbox(state.user.uid, (all, added) => {
       const n = all.filter((m) => !m.read).length;
-      pill.textContent = "💬 Equipo · " + n + (n === 1 ? " nuevo" : " nuevos");
-      pill.style.display = n ? "inline-flex" : "none";
+      // Siempre visible para volver al Lanzador; muestra los mensajes nuevos si hay.
+      pill.textContent = n ? "← Equipo · " + n + (n === 1 ? " nuevo" : " nuevos") : "← Equipo";
+      pill.style.display = "inline-flex";
+      pill.style.opacity = n ? "1" : ".85";
       if (!first && added.some((m) => !m.read)) { pill.animate && pill.animate([{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }], { duration: 400, iterations: 2 }); if (navigator.vibrate) navigator.vibrate(80); }
       first = false;
     }, () => {});

@@ -158,6 +158,13 @@ try {
   await B.getByText("Bluetooth, WhatsApp, Gmail, Drive…").waitFor();
   await B.screenshot({ path: new URL("5-compartir.png", SHOTS).pathname });
   step("menú Compartir con Bluetooth/WhatsApp, descarga, QR y envío al equipo");
+  await B.getByText("Enviar a alguien del equipo").click();
+  await B.getByRole("dialog").getByText("Jeiler").click();
+  await B.getByText("Enviado a Jeiler. Quedó en su chat (pestaña Chats).").waitFor();
+  await B.getByPlaceholder(/Escribe a Jeiler/).waitFor();
+  assert.ok(await B.locator("p.font-medium", { hasText: "Reparar servicio de audio (Audiosrv)" }).count() >= 2, "el script enviado aparece en el chat");
+  await waitFor(async () => (await A.locator("p.font-medium", { hasText: "Reparar servicio de audio (Audiosrv)" }).count()) >= 2, "Jeiler recibe el script en el chat");
+  step("Compartir → Enviar a alguien: abre el chat y el script queda ahí para los dos");
 
   console.log("Scripts publicados al equipo (como un grupo)");
   await A.getByRole("button", { name: "Volver" }).click();
@@ -187,6 +194,24 @@ try {
   const p3 = await waitFor(() => pushes.find((p) => p.webpush.notification.title.startsWith("✨")), "push del prompt");
   assert.equal(p3.token, "tok-jeiler");
   step("el Asesor IA envía el prompt a un compañero con notificación");
+  await B.getByText("← Equipo").waitFor();
+  step("el Asesor muestra «← Equipo» para volver al Lanzador");
+  await B.getByRole("button", { name: /Perfil y memoria/ }).first().click();
+  const campos = () => B.locator("#p-nombre, #p-rol, #p-sistema, #p-herramientas, #p-metas, #p-rutas, #p-noQuiero").count();
+  await B.locator("#p-nivel").selectOption("basico");
+  assert.equal(await campos(), 2, "básico: 2 campos");
+  await B.locator("#p-nivel").selectOption("intermedio");
+  assert.equal(await campos(), 5, "intermedio: 5 campos");
+  await B.locator("#p-nivel").selectOption("avanzado");
+  assert.equal(await campos(), 7, "avanzado: 7 campos");
+  await B.screenshot({ path: new URL("9-asesor-avanzado.png", SHOTS).pathname });
+  await B.locator("#p-nivel").selectOption("basico");
+  await B.screenshot({ path: new URL("10-asesor-basico.png", SHOTS).pathname });
+  step("Asesor: básico pide 2 datos, intermedio 5 y avanzado 7");
+  await A.goto(APP);
+  await A.getByRole("link", { name: "Abrir el Asesor IA" }).click();
+  await A.waitForURL(/\/asesor\//);
+  step("el Lanzador abre el Asesor IA desde arriba");
 
   assert.deepEqual(errors, [], "sin errores de JavaScript");
   step("sin errores de JavaScript en la consola");

@@ -444,7 +444,9 @@ pre.prompt { white-space: pre-wrap; overflow-wrap: anywhere; }
       out.push(q);
       askedSlots.add(q.slot);
     }
-    return { questions: out.slice(0, max), remembered };
+    // Según tu nivel técnico: básico responde 1 pregunta, intermedio hasta 2 y avanzado hasta 3.
+    const cap = { basico: 1, intermedio: 2, avanzado: 3 }[profile.nivel] || 2;
+    return { questions: out.slice(0, Math.min(max, cap)), remembered };
   }
 
   // ---------- 7. Preferencias, perfil y memoria ----------
@@ -1488,6 +1490,10 @@ window.__startApp = function () {
       try { const next = E.importData(memory, raw); update(() => next); notify("Datos cargados."); setCode(""); }
       catch (e) { notify(e.message); }
     };
+    // Campos según el nivel: básico pide lo esencial, intermedio un poco más y avanzado todo.
+    // Un campo de otro nivel que ya tenga datos se sigue mostrando, para que nada se use a escondidas.
+    const RANK = { basico: 1, intermedio: 2, avanzado: 3 };
+    const shows = (min, id) => RANK[p.nivel] >= RANK[min] || !!String(p[id] || "").trim();
     const field = (id, label, ph, wide, area) => html`<div className=${"grid gap-1.5 " + (wide ? "sm:col-span-2" : "")}>
       <${Label} htmlFor=${"p-" + id}>${label}<//>
       ${area ? html`<textarea id=${"p-" + id} rows="2" value=${p[id]} placeholder=${ph} onChange=${(e) => setProfile({ [id]: e.target.value })} className=${INPUT}></textarea>`
@@ -1501,24 +1507,25 @@ window.__startApp = function () {
           return html`<button key=${c.id} type="button" aria-pressed=${on} onClick=${() => setPrefs({ chips: on ? prefs.chips.filter((x) => x !== c.id) : prefs.chips.concat(c.id) })}
             className=${"rounded-full border px-3 py-1.5 text-sm font-bold transition " + (on ? "border-acc bg-acc text-acc-ink" : "border-line bg-raised text-ink hover:bg-line")}>${on ? "✓ " : ""}${c.label}</button>`;
         })}</div>
-        <div className="grid gap-1.5"><${Label} htmlFor="styleText">Otras preferencias (texto libre)<//>
+        ${(RANK[p.nivel] >= 2 || prefs.styleText.trim()) && html`<div className="grid gap-1.5"><${Label} htmlFor="styleText">Otras preferencias (texto libre)<//>
           <textarea id="styleText" rows="2" value=${prefs.styleText} onChange=${(e) => setPrefs({ styleText: e.target.value })} className=${INPUT}
-            placeholder="Ej.: si algo es irreversible, avísame antes"></textarea></div>
-        <${Toggle} id="useEx" checked=${prefs.useExamples} onChange=${(v) => setPrefs({ useExamples: v })}>Usar mis favoritos como ejemplos (few-shot) en pedidos parecidos<//>
+            placeholder="Ej.: si algo es irreversible, avísame antes"></textarea></div>`}
+        ${RANK[p.nivel] >= 3 && html`<${Toggle} id="useEx" checked=${prefs.useExamples} onChange=${(v) => setPrefs({ useExamples: v })}>Usar mis favoritos como ejemplos (few-shot) en pedidos parecidos<//>`}
       <//>
 
       <${Card} title="Mi perfil" icon="User">
+        <div className="grid gap-1.5"><${Label} htmlFor="p-nivel">¿Cuánto sabes de tecnología e IA?<//>
+          <select id="p-nivel" value=${p.nivel} onChange=${(e) => setProfile({ nivel: e.target.value })} className=${INPUT}>
+            <option value="basico">Básico: solo lo esencial</option><option value="intermedio">Intermedio: algunos datos más</option><option value="avanzado">Avanzado: todos los datos</option></select>
+          <span className="text-xs text-mute">${p.nivel === "basico" ? "Te pido 2 datos y te hago 1 pregunta por idea." : p.nivel === "intermedio" ? "Te pido 5 datos y hasta 2 preguntas por idea." : "Te pido todo y hasta 3 preguntas por idea, para prompts más precisos."}</span></div>
         <div className="grid gap-3 sm:grid-cols-2">
           ${field("nombre", "¿Cómo te llamas?", "")}
           ${field("rol", "¿A qué te dedicas o qué estudias?", "Ej.: aprendiz de soporte técnico")}
-          <div className="grid gap-1.5"><${Label} htmlFor="p-nivel">Nivel técnico<//>
-            <select id="p-nivel" value=${p.nivel} onChange=${(e) => setProfile({ nivel: e.target.value })} className=${INPUT}>
-              <option value="basico">Básico</option><option value="intermedio">Intermedio</option><option value="avanzado">Avanzado</option></select></div>
-          ${field("sistema", "Tu equipo y sistema", "Ej.: Windows 11, PowerShell 7, Android")}
-          ${field("herramientas", "Herramientas que más usas", "Ej.: n8n, Excel, Gemini, Telegram", true)}
-          ${field("rutas", "Rutas o carpetas habituales", "Ej.: C:\\Scripts, D:\\Clientes", true)}
-          ${field("metas", "Tus metas", "Ej.: crecer en soporte técnico, montar mis agentes en n8n", true, true)}
-          ${field("noQuiero", "Lo que NO quieres que haga la IA", "Ej.: repetir lo que dije, ofrecer cosas extra", true)}
+          ${shows("intermedio", "sistema") && field("sistema", "Tu equipo y sistema", "Ej.: Windows 11, PowerShell 7, Android")}
+          ${shows("intermedio", "herramientas") && field("herramientas", "Herramientas que más usas", "Ej.: n8n, Excel, Gemini, Telegram")}
+          ${shows("intermedio", "metas") && field("metas", "Tus metas", "Ej.: crecer en soporte técnico, montar mis agentes en n8n", true, true)}
+          ${shows("avanzado", "rutas") && field("rutas", "Rutas o carpetas habituales", "Ej.: C:\\Scripts, D:\\Clientes", true)}
+          ${shows("avanzado", "noQuiero") && field("noQuiero", "Lo que NO quieres que haga la IA", "Ej.: repetir lo que dije, ofrecer cosas extra", true)}
         </div>
         <${Toggle} id="enApp" checked=${p.enApp} onChange=${(v) => setProfile({ enApp: v })}>Ya pegué mi perfil y mis preferencias en la personalización de la app. No los repitas en cada prompt.<//>
         <div className="grid gap-2 rounded-xl border border-line bg-raised p-3">
