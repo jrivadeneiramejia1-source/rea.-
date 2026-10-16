@@ -1,11 +1,16 @@
 # Lanzador de Scripts
 
-Gestor portátil de scripts de soporte técnico (PowerShell 7, CMD, Bash, Python) para el celular y cualquier PC. Guarda, organiza, **audita**, descarga y comparte tus scripts por enlace o QR. **No ejecuta nada**: tú revisas el código y lo corres en el equipo.
+Gestor portátil de scripts de soporte técnico (PowerShell 5.1 y 7, CMD, Bash, Python) para el celular y cualquier PC. Guarda, organiza, **audita**, descarga y comparte tus scripts por enlace o QR. **No ejecuta nada**: tú revisas el código y lo corres en el equipo.
 
 Archivo único: `lanzador.html` (React 18 + Tailwind + lucide-react, cargados con respaldo desde CDN; QR con `qrcode-generator`).
 
 ## Qué hace
 
+- **PowerShell 5.1 nativo:** lenguaje propio; el auditor marca como falla lo que solo existe en PowerShell 7.
+- **Agregar desde el computador:** importa archivos .ps1, .bat, .cmd, .py y .sh (respeta UTF-16 y ANSI); los .ps1 sin sintaxis de PS7 entran como 5.1.
+- **Compartir con otras apps:** menú Compartir del sistema (Bluetooth, WhatsApp, Gmail…) fuera de claude.ai; dentro, el archivo pasa por la descarga (en iPhone abre Compartir; en Android queda en Descargas). Enlaces directos a WhatsApp y Telegram.
+- **Comunidad con inicio de sesión:** la sesión es la cuenta de Claude. Cada persona marca qué scripts comparte; los demás los ven, los auditan y los copian a su biblioteca. Tablero de pedidos («necesito un script para…»). Reglas: cada uno escribe solo lo suyo; la biblioteca personal es privada. Para que alguien publique, el dueño debe quitar el enlace público e invitarlo por correo como Editor.
+- **Recibir de otra persona sin Claude:** con el enlace de su Gist (versión PC) o los archivos que te mande.
 - **Biblioteca:** nombre, categoría (Audio, Resolución/Video, Organizador de Comunidades, Red, Mantenimiento), lenguaje, etiquetas y notas de qué problema resuelve.
 - **Buscador aproximado (fuzzy):** tolera errores de dedo (ej. «resolucon» encuentra «resolución») y filtros rápidos por categoría y lenguaje.
 - **3 ejemplos reales** precargados y probados (ver `ejemplos/`): reparar audio (Audiosrv), cambiar resolución o reiniciar el driver de video, y organizar una carpeta por tipo de archivo.
