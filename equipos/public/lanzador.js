@@ -198,7 +198,7 @@
       ${step === "perfil" ? html`<section className="bg-panel border border-line rounded-2xl p-4 space-y-3">
           <h1 className="text-lg font-semibold">¿Cómo te verá tu equipo?</h1>
           <${Field} label="Nombre visible"><input className=${inputCls} value=${name} onInput=${(e) => setName(e.target.value)} maxLength="60" /><//>
-          <${Field} label="Cargo o rol (opcional)" hint="Ej.: Aprendiz SENA · Soporte técnico"><input className=${inputCls} value=${cargo} onInput=${(e) => setCargo(e.target.value)} maxLength="80" /><//>
+          <${Field} label="Cargo o rol (opcional)" hint="Ej.: Soporte técnico"><input className=${inputCls} value=${cargo} onInput=${(e) => setCargo(e.target.value)} maxLength="80" /><//>
           <${Btn} kind="primary" className="w-full" disabled=${busy || !name.trim()} onClick=${() => run(async () => { await E.saveProfile({ name: name, cargo: cargo }); setStep("equipo"); })}>Continuar<//>
         </section>`
       : html`<section className="bg-panel border border-line rounded-2xl p-4 space-y-4">
@@ -213,7 +213,7 @@
           <div className="flex items-center gap-3 text-xs text-faint"><span className="flex-1 h-px bg-line"></span>o<span className="flex-1 h-px bg-line"></span></div>
           <div className="space-y-2">
             <h2 className="text-sm font-medium">Crear un equipo nuevo</h2>
-            <input className=${inputCls} placeholder="Ej.: Soporte SENA ficha 2901234" value=${teamName} onInput=${(e) => setTeamName(e.target.value)} maxLength="60" />
+            <input className=${inputCls} placeholder="Ej.: Soporte" value=${teamName} onInput=${(e) => setTeamName(e.target.value)} maxLength="60" />
             <${Btn} className="w-full" disabled=${busy || !teamName.trim()} onClick=${() => run(async () => { await E.createTeam(teamName); onDone(); })}><${Icon} name="Users" />Crear y obtener código<//>
           </div>
           ${err && html`<p role="alert" className="text-sm text-bad">${err}</p>`}

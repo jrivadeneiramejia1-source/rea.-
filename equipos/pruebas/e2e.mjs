@@ -59,7 +59,7 @@ async function signUp(page, url, name, email) {
   await page.getByRole("button", { name: "Crear cuenta" }).last().click();
   await page.getByText("¿Cómo te verá tu equipo?").waitFor();
   assert.equal(await page.getByLabel("Nombre visible").inputValue(), name);
-  await page.getByLabel("Cargo o rol (opcional)").fill("Aprendiz SENA");
+  await page.getByLabel("Cargo o rol (opcional)").fill("Soporte técnico");
   await page.getByRole("button", { name: "Continuar" }).click();
   await page.getByText("Unirme con un código").waitFor();
 }
@@ -75,7 +75,7 @@ try {
   step("sin sesión se muestra la pantalla de inicio de sesión");
   await signUp(A, APP, "Jeiler", "jeiler@prueba.co");
   step("cuenta con correo y perfil (nombre y cargo)");
-  await A.getByPlaceholder("Ej.: Soporte SENA ficha 2901234").fill("Soporte SENA");
+  await A.getByPlaceholder("Ej.: Soporte").fill("Soporte");
   await A.getByRole("button", { name: "Crear y obtener código" }).click();
   await A.getByRole("button", { name: "Equipo" }).click();
   const code = (await A.locator(".select-all").textContent()).trim();
@@ -83,7 +83,7 @@ try {
   step("equipo creado con código " + code);
 
   await signUp(B, APP + "/?equipo=" + code.replace(/-/g, ""), "Amigo Técnico", "amigo@prueba.co");
-  await B.getByText("Equipo encontrado: Soporte SENA").waitFor();
+  await B.getByText("Equipo encontrado: Soporte").waitFor();
   await B.getByRole("button", { name: "Unirme" }).click();
   await B.getByRole("button", { name: "Equipo" }).click();
   await B.getByText("Jeiler").first().waitFor();

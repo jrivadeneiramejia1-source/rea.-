@@ -342,7 +342,7 @@ pre.prompt { white-space: pre-wrap; overflow-wrap: anywhere; }
   const CHECKS = [
     { id: "action", dim: "claridad", w: 10, label: "Verbo de acción claro", fix: "Empieza con lo que quieres: «Crea…», «Corrige…», «Explícame…»." },
     { id: "specific", dim: "claridad", w: 8, label: "Tarea específica", fix: "Nombra el qué exacto: archivo, programa, tema o dato concreto, en al menos una frase completa." },
-    { id: "purpose", dim: "claridad", w: 8, label: "Propósito (para qué)", fix: "Di para qué lo necesitas: «…para entregarlo en el SENA», «…para que lo use un cliente»." },
+    { id: "purpose", dim: "claridad", w: 8, label: "Propósito (para qué)", fix: "Di para qué lo necesitas: «…para usarlo en soporte técnico», «…para que lo use un cliente»." },
     { id: "single", dim: "claridad", w: 4, label: "Una tarea a la vez", fix: "Pides muchas cosas a la vez: divídelas en mensajes o en pasos numerados." },
     { id: "unambiguous", dim: "claridad", w: 5, label: "Sin palabras vagas", fix: "Cambia «algo», «cosas», «bonito» o «etc.» por algo concreto y medible." },
     { id: "role", dim: "contexto", w: 7, label: "Rol asignado", fix: "Dile quién debe ser: «Actúa como técnico de soporte senior»." },
@@ -1517,7 +1517,7 @@ window.__startApp = function () {
           ${field("sistema", "Tu equipo y sistema", "Ej.: Windows 11, PowerShell 7, Android")}
           ${field("herramientas", "Herramientas que más usas", "Ej.: n8n, Excel, Gemini, Telegram", true)}
           ${field("rutas", "Rutas o carpetas habituales", "Ej.: C:\\Scripts, D:\\Clientes", true)}
-          ${field("metas", "Tus metas", "Ej.: terminar el SENA, montar mis agentes en n8n", true, true)}
+          ${field("metas", "Tus metas", "Ej.: crecer en soporte técnico, montar mis agentes en n8n", true, true)}
           ${field("noQuiero", "Lo que NO quieres que haga la IA", "Ej.: repetir lo que dije, ofrecer cosas extra", true)}
         </div>
         <${Toggle} id="enApp" checked=${p.enApp} onChange=${(v) => setProfile({ enApp: v })}>Ya pegué mi perfil y mis preferencias en la personalización de la app. No los repitas en cada prompt.<//>

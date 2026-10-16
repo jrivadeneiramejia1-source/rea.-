@@ -19,7 +19,7 @@ const script = { id: "s1", name: "Reparar audio", category: "Audio", lang: "ps5"
 const profile = (name, team) => ({ name, photoURL: "", cargo: "Soporte", status: "disponible", team, lastSeen: serverTimestamp(), createdAt: 1 });
 
 console.log("Equipos y perfiles");
-await ok("Jeiler crea su equipo", setDoc(doc(db("jeiler"), "teams", TEAM), { name: "Soporte SENA", owner: "jeiler", createdAt: serverTimestamp() }));
+await ok("Jeiler crea su equipo", setDoc(doc(db("jeiler"), "teams", TEAM), { name: "Soporte", owner: "jeiler", createdAt: serverTimestamp() }));
 await ok("Extraño crea otro equipo", setDoc(doc(db("extrano"), "teams", OTHER), { name: "Otro", owner: "extrano", createdAt: serverTimestamp() }));
 await no("no se puede crear un equipo a nombre de otro", setDoc(doc(db("jeiler"), "teams", "equipoFalso0001"), { name: "X", owner: "amigo", createdAt: serverTimestamp() }));
 await no("código de equipo demasiado corto", setDoc(doc(db("jeiler"), "teams", "corto"), { name: "X", owner: "jeiler", createdAt: serverTimestamp() }));
