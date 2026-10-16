@@ -1,0 +1,13 @@
+node_modules/
+public/vendor/
+public/motor.js
+public/lanzador.css
+public/asesor/
+public/config.json
+.firebase/
+.firebaserc
+worker/.wrangler/
+*.log
+cuenta-servicio*.json
+.tw-*
+pruebas/capturas/

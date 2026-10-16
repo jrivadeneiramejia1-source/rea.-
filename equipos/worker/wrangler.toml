@@ -1,0 +1,13 @@
+# Worker de notificaciones push del Lanzador · Equipos
+# Despliegue: npx wrangler deploy   (el instalador rellena los valores)
+name = "lanzador-notificaciones"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "TU-PROYECTO"
+APP_URL = "https://TU-PROYECTO.web.app"
+ALLOWED_ORIGINS = "https://TU-PROYECTO.web.app,https://TU-PROYECTO.firebaseapp.com"
+
+# Secreto (no va en este archivo):
+#   npx wrangler secret put GOOGLE_SERVICE_ACCOUNT   < cuenta-servicio.json

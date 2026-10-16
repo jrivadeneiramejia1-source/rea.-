@@ -976,6 +976,12 @@ window.__startApp = function () {
     return E.migrateLegacy({ profile: LS.get("asesor.profile", null), learned: LS.get("asesor.learned", null), app: LS.get("asesor.app", null) });
   }
   function loadDraft() {
+    // Prompt que llegó por el chat de Lanzador · Equipos ("Abrir en el Asesor").
+    const inc = LS.get("equipos.promptEntrante", null);
+    if (inc && typeof inc.text === "string" && inc.text.trim()) {
+      try { localStorage.removeItem("equipos.promptEntrante"); } catch (e) { /* sin almacenamiento */ }
+      return { idea: inc.text.slice(0, 20000), answers: {}, ctx: 0 };
+    }
     const d = LS.get(DRAFT_KEY, null);
     if (d && typeof d.idea === "string") return { idea: d.idea, answers: d.answers && typeof d.answers === "object" ? d.answers : {}, ctx: Number(d.ctx) || 0 };
     const legacy = LS.get("asesor.draft", "");
@@ -1345,7 +1351,7 @@ window.__startApp = function () {
     <//>`;
   }
 
-  function CompareCard({ r, promptText, setEdited, edited, onCopy, onCopyOriginal, onExport, onLike, onSaveTemplate }) {
+  function CompareCard({ r, promptText, setEdited, edited, onCopy, onCopyOriginal, onExport, onLike, onSaveTemplate, onSendTeam }) {
     const [like, setLike] = useState(false);
     const [answer, setAnswer] = useState("");
     const [tplName, setTplName] = useState("");
@@ -1372,6 +1378,7 @@ window.__startApp = function () {
       </div>
       <div className="flex flex-wrap gap-2">
         <${Btn} kind="primary" icon="Copy" onClick=${onCopy}>Copiar prompt<//>
+        ${onSendTeam && html`<${Btn} icon="Send" onClick=${onSendTeam}>Enviar a un compañero<//>`}
         <${Btn} icon="FileText" onClick=${() => onExport("md")}>Exportar .md<//>
         <${Btn} icon="FileJson" onClick=${() => onExport("json")}>Exportar .json<//>
         <${Btn} icon="Heart" onClick=${() => setLike(!like)} pressed=${like}>Aprender de este prompt<//>
@@ -1671,6 +1678,15 @@ window.__startApp = function () {
       notify(ok ? "Copiado. Pégalo en " + r.providerLabel + " con " + r.rec.model + "." : "No se pudo copiar: selecciona el texto y cópialo a mano.");
       if (ok) record();
     };
+    // Solo existe en la versión publicada con Lanzador · Equipos (asesor-puente.js); en claude.ai no aparece.
+    const [puente, setPuente] = useState(!!window.AsesorPuente);
+    useEffect(() => { const h = () => setPuente(true); window.addEventListener("asesor-puente", h); return () => window.removeEventListener("asesor-puente", h); }, []);
+    const onSendTeam = async () => {
+      if (r.empty) { notify("Escribe primero tu idea."); return; }
+      const title = (draft.idea.split("\n").find((l) => l.trim()) || "Prompt").trim().slice(0, 120);
+      notify(await window.AsesorPuente.enviar({ title: title, text: promptText, model: r.rec.model }));
+      record();
+    };
     const onExport = async (kind) => {
       if (r.empty) { notify("Escribe primero tu idea."); return; }
       const stamp = new Date().toISOString().slice(0, 10);
@@ -1722,7 +1738,7 @@ window.__startApp = function () {
           <${ScoreCard} r=${r} />
           <${CompareCard} r=${r} promptText=${promptText} edited=${edited} setEdited=${setEdited}
             onCopy=${onCopy} onCopyOriginal=${async () => notify((await copyText(r.detection.raw)) ? "Original copiado." : "No se pudo copiar.")}
-            onExport=${onExport} onLike=${onLike} onSaveTemplate=${onSaveTemplate} />
+            onExport=${onExport} onLike=${onLike} onSaveTemplate=${onSaveTemplate} onSendTeam=${puente ? onSendTeam : null} />
           <${RecommendCard} r=${r} voice=${voice} speakSummary=${() => speak(summary(r) + (r.interview.questions[0] ? " Primera pregunta: " + r.interview.questions[0].q : ""))} />
           <${TipsCard} r=${r} />
         <//>`}

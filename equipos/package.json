@@ -1,0 +1,27 @@
+{
+  "name": "lanzador-equipos",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Lanzador de Scripts con equipos: Firebase (Auth, Firestore, FCM) + Cloudflare Worker para avisos push.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test:worker": "node pruebas/worker.test.mjs",
+    "test:reglas": "firebase emulators:exec --only firestore --project demo-equipos \"node pruebas/reglas.test.mjs\"",
+    "emuladores": "firebase emulators:start --only auth,firestore,hosting --project demo-equipos",
+    "deploy:firebase": "firebase deploy --only hosting,firestore",
+    "deploy:worker": "cd worker && wrangler deploy"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "5.0.2",
+    "firebase": "12.19.0",
+    "firebase-tools": "15.32.1",
+    "htm": "3.1.1",
+    "lucide-react": "0.263.1",
+    "qrcode-generator": "1.4.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tailwindcss": "3.4.17",
+    "wrangler": "4.145.0"
+  }
+}

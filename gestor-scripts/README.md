@@ -2,6 +2,8 @@
 
 Gestor portátil de scripts de soporte técnico (PowerShell 5.1 y 7, CMD, Bash, Python) para el celular y cualquier PC. Guarda, organiza, **audita**, descarga y comparte tus scripts por enlace o QR. **No ejecuta nada**: tú revisas el código y lo corres en el equipo.
 
+**Versión para equipos (inicio de sesión, chat, pedidos y notificaciones push):** ver [`../equipos`](../equipos/README.md). Usa el mismo motor de este archivo.
+
 Archivo único: `lanzador.html` (React 18 + Tailwind + lucide-react, cargados con respaldo desde CDN; QR con `qrcode-generator`).
 
 ## Qué hace

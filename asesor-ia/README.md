@@ -11,6 +11,8 @@ Te dice, antes de enviar un pedido a Claude, ChatGPT, Gemini o DeepSeek:
 
 Todo corre en tu dispositivo. No usa API ni gasta tokens.
 
+**Con tu equipo:** publicado junto a [Lanzador · Equipos](../equipos/README.md) queda en `/asesor/` con el botón «Enviar a un compañero» (le llega una notificación) y abre los prompts que te envían por el chat. Dentro de claude.ai ese botón no aparece.
+
 ## Versión 3 (artifact)
 
 `artifact/asesor-ia.html` es la versión actual publicada en claude.ai. Es un solo archivo: Tailwind 3.4.17 va compilado adentro y React 18, htm y lucide-react se cargan con respaldo (cdnjs → jsdelivr → unpkg; los íconos son opcionales). Si cambias clases de Tailwind, corre `node build.mjs` en `artifact/` (requiere `npm i -D tailwindcss@3.4.17`).

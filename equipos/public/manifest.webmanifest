@@ -1,0 +1,35 @@
+{
+  "name": "Lanzador · Equipos",
+  "short_name": "Lanzador",
+  "description": "Scripts de soporte técnico con tu equipo: chat, pedidos y avisos.",
+  "lang": "es-CO",
+  "id": "/",
+  "start_url": "/?origen=app",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0f0d",
+  "theme_color": "#0a0f0d",
+  "icons": [
+    { "src": "/icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "share_target": {
+    "action": "/compartir",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "titulo",
+      "text": "texto",
+      "url": "enlace",
+      "files": [
+        { "name": "archivos", "accept": ["text/plain", "text/x-python", "text/x-sh", "application/x-powershell", "application/x-bat", "application/octet-stream", ".ps1", ".psm1", ".bat", ".cmd", ".py", ".sh", ".txt"] }
+      ]
+    }
+  },
+  "shortcuts": [
+    { "name": "Pedir un script al equipo", "short_name": "Pedir script", "url": "/?accion=pedir", "icons": [{ "src": "/icono-192.png", "sizes": "192x192" }] },
+    { "name": "Mis scripts", "short_name": "Scripts", "url": "/?vista=scripts", "icons": [{ "src": "/icono-192.png", "sizes": "192x192" }] }
+  ]
+}

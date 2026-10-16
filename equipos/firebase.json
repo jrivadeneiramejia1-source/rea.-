@@ -1,0 +1,21 @@
+{
+  "firestore": { "rules": "firestore.rules", "indexes": "firestore.indexes.json" },
+  "hosting": {
+    "public": "public",
+    "ignore": ["config.ejemplo.json", "**/.*"],
+    "cleanUrls": false,
+    "rewrites": [{ "source": "/asesor", "destination": "/asesor/index.html" }],
+    "headers": [
+      { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }, { "key": "Service-Worker-Allowed", "value": "/" }] },
+      { "source": "**/*.@(js|css|json|webmanifest|html)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+      { "source": "**", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }] }
+    ]
+  },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8080 },
+    "hosting": { "port": 5000 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  }
+}

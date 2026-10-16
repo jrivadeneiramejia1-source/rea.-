@@ -1,0 +1,151 @@
+rules_version = '2';
+
+// Lanzador de Scripts · Equipos
+// Cada persona pertenece a un equipo (team). Solo los miembros del mismo equipo
+// se ven, se escriben y ven los pedidos y scripts publicados del equipo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function myTeam() { return me().team; }
+    function inTeam(t) { return signedIn() && t is string && t != '' && t == myTeam(); }
+    function str(v, min, max) { return v is string && v.size() >= min && v.size() <= max; }
+    function langs() { return ['pwsh', 'ps5', 'cmd', 'bash', 'python']; }
+
+    function validScript(s) {
+      return s is map
+        && s.keys().hasOnly(['id', 'name', 'category', 'lang', 'tags', 'notes', 'code', 'createdAt', 'updatedAt', 'deleted', 'shared', 'origin'])
+        && s.keys().hasAll(['id', 'name', 'lang', 'code'])
+        && str(s.id, 1, 60)
+        && str(s.name, 0, 120)
+        && s.lang in langs()
+        && str(s.code, 0, 200000)
+        && (!('notes' in s) || str(s.notes, 0, 4000))
+        && (!('category' in s) || str(s.category, 0, 40))
+        && (!('tags' in s) || (s.tags is list && s.tags.size() <= 20));
+    }
+
+    // Prompt enviado desde el Asesor IA.
+    function validPrompt(p) {
+      return p is map
+        && p.keys().hasOnly(['title', 'text', 'model'])
+        && p.keys().hasAll(['title', 'text'])
+        && str(p.title, 0, 120)
+        && str(p.text, 1, 20000)
+        && (!('model' in p) || str(p.model, 0, 60));
+    }
+
+    // ---------- Equipos ----------
+    match /teams/{teamId} {
+      // Solo se lee por su código (get); nadie puede listar todos los equipos.
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && teamId.size() >= 10 && teamId.size() <= 40
+        && request.resource.data.keys().hasOnly(['name', 'owner', 'createdAt'])
+        && request.resource.data.owner == request.auth.uid
+        && str(request.resource.data.name, 1, 60)
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn()
+        && resource.data.owner == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && str(request.resource.data.name, 1, 60);
+    }
+
+    // ---------- Personas (perfil público dentro del equipo) ----------
+    match /users/{uid} {
+      allow get: if isMe(uid) || inTeam(resource.data.team);
+      allow list: if inTeam(resource.data.team);
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['name', 'photoURL', 'cargo', 'status', 'team', 'lastSeen', 'createdAt'])
+        && str(request.resource.data.name, 1, 60)
+        && (!('photoURL' in request.resource.data) || str(request.resource.data.photoURL, 0, 500))
+        && (!('cargo' in request.resource.data) || str(request.resource.data.cargo, 0, 80))
+        && request.resource.data.status in ['disponible', 'ocupado', 'ausente']
+        && (request.resource.data.team == '' || exists(/databases/$(database)/documents/teams/$(request.resource.data.team)))
+        && (request.resource.data.lastSeen == request.time
+            || (resource != null && request.resource.data.lastSeen == resource.data.lastSeen));
+      allow delete: if isMe(uid);
+
+      // Biblioteca privada: solo su dueño.
+      match /scripts/{sid} {
+        allow read, delete: if isMe(uid);
+        allow create, update: if isMe(uid) && validScript(request.resource.data) && request.resource.data.id == sid;
+      }
+    }
+
+    // ---------- Dispositivos para notificaciones (solo el dueño; el Worker usa cuenta de servicio) ----------
+    match /devices/{uid} {
+      allow read, delete: if isMe(uid);
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['tokens'])
+        && request.resource.data.tokens is list
+        && request.resource.data.tokens.size() <= 10;
+    }
+
+    // ---------- Mensajes entre dos personas del mismo equipo ----------
+    match /messages/{mid} {
+      allow read: if signedIn()
+        && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['from', 'to', 'team', 'kind', 'text', 'script', 'prompt', 'requestId', 'createdAt', 'read'])
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.to is string
+        && request.resource.data.to != request.auth.uid
+        && request.resource.data.team == myTeam()
+        && myTeam() != ''
+        && get(/databases/$(database)/documents/users/$(request.resource.data.to)).data.team == myTeam()
+        && request.resource.data.kind in ['texto', 'script', 'pedido', 'prompt']
+        && str(request.resource.data.text, 0, 2000)
+        && (request.resource.data.script == null || validScript(request.resource.data.script))
+        && (request.resource.data.kind != 'script' || request.resource.data.script != null)
+        && (request.resource.data.get('prompt', null) == null || validPrompt(request.resource.data.prompt))
+        && (request.resource.data.kind != 'prompt' || request.resource.data.get('prompt', null) != null)
+        && (request.resource.data.requestId == null || str(request.resource.data.requestId, 1, 60))
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.read == false;
+      // El destinatario solo puede marcarlo como leído.
+      allow update: if signedIn()
+        && resource.data.to == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
+        && request.resource.data.read == true;
+      allow delete: if signedIn()
+        && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+    }
+
+    // ---------- Pedidos al equipo («¿alguien tiene un script para…?») ----------
+    match /requests/{rid} {
+      allow read: if inTeam(resource.data.team);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['from', 'team', 'text', 'lang', 'category', 'createdAt', 'status'])
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.team == myTeam()
+        && myTeam() != ''
+        && str(request.resource.data.text, 1, 300)
+        && (request.resource.data.lang == '' || request.resource.data.lang in langs())
+        && str(request.resource.data.category, 0, 40)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.status == 'abierto';
+      allow update: if signedIn()
+        && resource.data.from == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['abierto', 'resuelto'];
+      allow delete: if signedIn() && resource.data.from == request.auth.uid;
+    }
+
+    // ---------- Scripts publicados para todo el equipo ----------
+    match /community/{cid} {
+      allow read: if inTeam(resource.data.team);
+      allow create, update: if signedIn()
+        && cid.split('_')[0] == request.auth.uid
+        && request.resource.data.keys().hasOnly(['owner', 'team', 'script', 'publishedAt'])
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.team == myTeam()
+        && myTeam() != ''
+        && validScript(request.resource.data.script)
+        && request.resource.data.publishedAt == request.time;
+      allow delete: if signedIn() && resource.data.owner == request.auth.uid;
+    }
+  }
+}

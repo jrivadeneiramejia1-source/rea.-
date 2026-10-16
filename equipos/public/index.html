@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lanzador · Equipos</title>
+<meta name="description" content="Scripts de soporte técnico con tu equipo: chat, pedidos y notificaciones.">
+<meta name="theme-color" content="#0a0f0d">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icono-192.png">
+<link rel="apple-touch-icon" href="/icono-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lanzador">
+<link rel="stylesheet" href="/lanzador.css">
+<style>html,body{background:#0a0f0d;color:#e2ebe6;margin:0}</style>
+</head>
+<body class="bg-canvas text-ink font-sans antialiased">
+<div id="root"><div style="padding:32px;text-align:center;font-family:system-ui;color:#8fa39a">Cargando…</div></div>
+<noscript>Activa JavaScript para usar Lanzador · Equipos.</noscript>
+<script src="/vendor/react.production.min.js"></script>
+<script src="/vendor/react-dom.production.min.js"></script>
+<script src="/vendor/htm.js"></script>
+<script>window.react = window.React; /* lucide-react (UMD) busca React como "react" */</script>
+<script src="/vendor/lucide-react.min.js"></script>
+<script src="/vendor/qrcode.js"></script>
+<script src="/vendor/firebase-app-compat.js"></script>
+<script src="/vendor/firebase-auth-compat.js"></script>
+<script src="/vendor/firebase-firestore-compat.js"></script>
+<script src="/vendor/firebase-messaging-compat.js"></script>
+<script src="/motor.js"></script>
+<script src="/equipos.js"></script>
+<script src="/lanzador.js"></script>
+<script>window.__startLanzador();</script>
+</body>
+</html>
