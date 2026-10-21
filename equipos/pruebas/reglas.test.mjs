@@ -72,11 +72,28 @@ await no("el destinatario no puede cambiar el contenido", updateDoc(doc(db("amig
 await no("el remitente no puede marcarlo como leído", updateDoc(doc(db("amigo"), "messages", "m2"), { read: true }));
 await ok("borrar un mensaje propio", deleteDoc(doc(db("jeiler"), "messages", "m1")));
 
+console.log("Pedidos con «para qué», respuestas citando y «Me sirvió»");
+await ok("pedido directo con para qué y sistema", setDoc(doc(db("amigo"), "messages", "n1"), msg("amigo", "jeiler", { kind: "pedido", text: "Uno para limpiar la cola de impresión", script: null, purpose: "La impresora de la sala 3 no imprime", system: "Windows 11" })));
+await no("para qué demasiado largo", setDoc(doc(db("amigo"), "messages", "n2"), msg("amigo", "jeiler", { kind: "pedido", text: "x", script: null, purpose: "a".repeat(301) })));
+await ok("responder citando un mensaje", setDoc(doc(db("jeiler"), "messages", "n3"), msg("jeiler", "amigo", { kind: "texto", script: null, text: "Ábrelo como administrador", replyTo: { id: "n1", kind: "pedido", text: "Uno para limpiar la cola", name: "" } })));
+await no("cita con campos extra", setDoc(doc(db("jeiler"), "messages", "n4"), msg("jeiler", "amigo", { kind: "texto", script: null, replyTo: { id: "n1", kind: "pedido", texto: "x", admin: true } })));
+await no("cita sin id", setDoc(doc(db("jeiler"), "messages", "n5"), msg("jeiler", "amigo", { kind: "texto", script: null, replyTo: { kind: "texto", text: "x" } })));
+await no("crear un mensaje con reacción ya puesta", setDoc(doc(db("jeiler"), "messages", "n6"), msg("jeiler", "amigo", { reaction: "sirvio" })));
+await ok("Jeiler le envía otro script", setDoc(doc(db("jeiler"), "messages", "n7"), msg("jeiler", "amigo")));
+await ok("quien lo recibió dice «Me sirvió»", updateDoc(doc(db("amigo"), "messages", "n7"), { read: true, reaction: "sirvio" }));
+await ok("y puede cambiar a «No me funcionó»", updateDoc(doc(db("amigo"), "messages", "n7"), { reaction: "no-sirvio" }));
+await no("reacción inventada", updateDoc(doc(db("amigo"), "messages", "n7"), { reaction: "excelente" }));
+await no("quien lo envió no puede ponerse la reacción", updateDoc(doc(db("jeiler"), "messages", "n7"), { reaction: "sirvio" }));
+await no("con la reacción no se cambia el texto", updateDoc(doc(db("amigo"), "messages", "n7"), { reaction: "sirvio", text: "otro" }));
+
 console.log("Pedidos al equipo y scripts publicados");
 const req = { from: "amigo", team: TEAM, text: "Necesito un script para resetear Winsock", lang: "", category: "Red", createdAt: serverTimestamp(), status: "abierto" };
 await ok("pedido al equipo", setDoc(doc(db("amigo"), "requests", "r1"), req));
 await no("pedido a otro equipo", setDoc(doc(db("amigo"), "requests", "r2"), { ...req, team: OTHER }));
 await ok("un compañero ve el pedido", getDoc(doc(db("jeiler"), "requests", "r1")));
+await ok("pedido al equipo con para qué y sistema", setDoc(doc(db("amigo"), "requests", "r3"), { ...req, purpose: "El PC de recepción no navega", system: "Windows 10" }));
+await no("pedido con sistema demasiado largo", setDoc(doc(db("amigo"), "requests", "r4"), { ...req, system: "W".repeat(41) }));
+await no("pedido con campos inventados", setDoc(doc(db("amigo"), "requests", "r5"), { ...req, urgente: true }));
 await no("alguien de otro equipo no lo ve", getDoc(doc(db("extrano"), "requests", "r1")));
 await ok("quien pidió lo marca resuelto", updateDoc(doc(db("amigo"), "requests", "r1"), { status: "resuelto" }));
 await no("otro no puede cerrar el pedido", updateDoc(doc(db("jeiler"), "requests", "r1"), { status: "abierto" }));

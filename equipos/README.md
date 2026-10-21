@@ -7,8 +7,9 @@ El Lanzador de Scripts convertido en app de equipo, al estilo Microsoft Teams: c
 - **Inicio de sesión explícito:** Google o correo y contraseña (con «¿Olvidaste tu contraseña?»). Arriba siempre se ve quién está conectado y con qué cuenta. Cerrar sesión quita los avisos de ese dispositivo.
 - **Equipos:** creas un equipo y obtienes un código (`XXXX-XXXX-XXXX`) o un enlace/QR de invitación. Solo las personas del mismo equipo se ven y se escriben (las reglas de Firestore lo exigen en el servidor, no solo en la pantalla).
 - **Presencia:** Disponible, Ocupado, Ausente o «Desconectado · hace 2 h». Cada app abierta avisa cada 2 minutos que sigue ahí.
-- **Chat 1 a 1:** texto, scripts (Ver, Guardar en mis scripts, Compartir), pedidos y prompts del Asesor. Marca «Enviado» / «Visto».
-- **Pedidos:** «Pedir script» a una persona o a todo el equipo. Solo dices qué necesitas; quien lo tenga toca «Tengo uno: enviar» y tú lo adaptas a tu equipo (la ruta la pones tú).
+- **Chat 1 a 1:** texto, scripts (Ver, Guardar en mis scripts, Compartir), pedidos y prompts del Asesor. Marca «Enviado» / «Visto». Separado por días, como WhatsApp.
+- **Chat interactivo:** toca un mensaje (o ⋮) para **Responder citándolo**, Copiar o Borrar; tocar la cita lleva al mensaje original. En un script recibido: **¿Cómo lo uso?** abre una guía que se arma sola con el código (qué hace, si necesita administrador o PowerShell 7, si hace preguntas, y los pasos con los comandos para copiar) y desde ahí **le preguntas a quien te lo mandó** en el mismo chat, citando el script. **Me sirvió / No me funcionó**: quien lo envió lo ve en su mensaje; si no funcionó, se abre la respuesta para contar el error.
+- **Pedidos:** «Pedir script» a una persona o a todo el equipo diciendo **qué necesitas y para qué** (obligatorio), en qué sistema (Windows 11, 10, Server, Linux) y el tema. Quien lo tenga toca «Tengo uno: enviar» y tú lo adaptas a tu equipo (la ruta la pones tú).
 - **Notificaciones:**
   - Push (Firebase Cloud Messaging) cuando te escriben, te envían o te piden un script, y cuando alguien pide al equipo. Al tocar el aviso se abre el chat o el pedido.
   - Con la app abierta: aviso flotante, sonido, vibración, contador en el ícono de la app y en el título.
@@ -106,6 +107,8 @@ Solo la app, sin notificaciones push: `pwsh -File .\instalar.ps1 -ProyectoId lan
 
 ### Actualizar después de cambios
 
+**Versión con «para qué», citas y «Me sirvió»:** hay que volver a pegar las reglas (`3-reglas-firestore.txt` del zip) en Firestore → Reglas → Publicar. Mientras no se peguen, la app sigue funcionando: el «para qué» y el sistema viajan dentro del texto, la cita no se guarda y «Me sirvió» avisa que faltan las reglas. El Worker no cambia.
+
 ```powershell
 Set-Location "$HOME\rea\equipos"
 npm run build
@@ -142,11 +145,11 @@ En iPhone las notificaciones solo funcionan con la app agregada a inicio (iOS 16
 ```bash
 npm run test:worker      # Worker: firmas RSA reales, tokens falsos/vencidos/de otro proyecto, CORS, avisos, índices
 node pruebas/consultas.test.mjs   # la app funciona aunque falten los índices
-npm run test:reglas      # 58 casos de reglas contra el emulador de Firestore (requiere Java 21)
+npm run test:reglas      # 73 casos de reglas contra el emulador de Firestore (requiere Java 21)
 PLAYWRIGHT_MODULE=… npx firebase emulators:exec --only auth,firestore,hosting --project demo-equipos "node pruebas/e2e.mjs"
 ```
 
-La prueba de extremo a extremo usa dos navegadores (Jeiler y Amigo): cuentas, equipo por invitación, presencia, pedido al equipo con aviso push, respuesta con script, guardar, «Visto», chat sin duplicados, menú Compartir y envío de un prompt desde el Asesor IA. El servidor FCM es simulado en esa prueba.
+La prueba de extremo a extremo usa dos navegadores (Jeiler y Amigo): cuentas, equipo por invitación, presencia, pedido al equipo con «para qué» y aviso push, respuesta con script, guardar, guía «¿Cómo lo uso?», pregunta citando el script, «Me sirvió», responder citando, «Visto», chat sin duplicados y sin salirse de la pantalla, reglas anteriores sin perder datos, menú Compartir y envío de un prompt desde el Asesor IA (29 comprobaciones). El servidor FCM es simulado en esa prueba.
 
 ## Límites
 

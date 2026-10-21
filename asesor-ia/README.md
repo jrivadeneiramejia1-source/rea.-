@@ -13,6 +13,18 @@ Todo corre en tu dispositivo. No usa API ni gasta tokens.
 
 **Con tu equipo:** publicado junto a [Lanzador · Equipos](../equipos/README.md) queda en `/asesor/` con el botón «Enviar a un compañero» (le llega una notificación) y abre los prompts que te envían por el chat. Dentro de claude.ai ese botón no aparece.
 
+## Versión 3.1 (octubre de 2026)
+
+- **Soporte técnico bien entendido:** «la impresora no imprime», «3 pitidos al encender», «se reinicia solo», «IP estática», «Outlook no abre» ya son *Soporte técnico* (antes salían como tarea simple o general). Pregunta síntoma, equipo y qué cambió, y pide la respuesta como tabla *Prueba → Resultado esperado → Siguiente paso*, de lo más seguro a lo más complejo. «Bot de Discord» ya no se confunde con un disco.
+- **Errores y registros pegados:** un error de PowerShell completo (`At C:\…:3 char:1`, `+ CategoryInfo…`), líneas con hora y un flujo de n8n en JSON van como datos, sin «limpiarlos», y ya no te pregunta «¿cuál es el error exacto?».
+- **Oculta datos sensibles** del prompt (contraseñas, tokens, llaves de API, JWT, token de bot de Telegram). Opcional: correos e IP. Se apaga en Perfil o con «No ocultar».
+- **Scripts más seguros:** el prompt pide `-WhatIf` y `Test-Path` antes de borrar o cambiar algo.
+- **Puntaje honesto:** «asdf qwer zxcv» ya no saca 100; el idioma no cuenta como tono; las plantillas con `[partes sin llenar]` avisan y no se dan por completas.
+- **No se pierde tu trabajo:** al cambiar a otra idea se borran las respuestas viejas; si editaste el prompt a mano y luego respondes, te pregunta cuál dejar. Botón «Nueva idea».
+- **Memoria:** importar valida el archivo y dice qué cargó; copiar, exportar y favorito cuentan una sola vez; un favorito no se usa como ejemplo de sí mismo; los consejos hablan del modelo de la app elegida.
+- **Accesibilidad y celular:** contraste del texto tenue corregido, botones de 40 a 44 px, nada se sale a 390 px, `lang="es"`, avisos leídos por lectores de pantalla y sin animaciones con «reducir movimiento».
+- **Pruebas:** `node pruebas/motor.mjs` (37 casos del motor) y `pruebas/interfaz.mjs` (15 en navegador, con axe).
+
 ## Versión 3 (artifact)
 
 `artifact/asesor-ia.html` es la versión actual publicada en claude.ai. Es un solo archivo: Tailwind 3.4.17 va compilado adentro y React 18, htm y lucide-react se cargan con respaldo (cdnjs → jsdelivr → unpkg; los íconos son opcionales). Si cambias clases de Tailwind, corre `node build.mjs` en `artifact/` (requiere `npm i -D tailwindcss@3.4.17`).

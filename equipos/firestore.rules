@@ -37,6 +37,22 @@ service cloud.firestore {
         && (!('model' in p) || str(p.model, 0, 60));
     }
 
+    // Mensaje al que se responde (cita corta, como en WhatsApp).
+    function validReply(r) {
+      return r is map
+        && r.keys().hasOnly(['id', 'kind', 'text', 'name'])
+        && r.keys().hasAll(['id'])
+        && str(r.id, 1, 60)
+        && (!('kind' in r) || r.kind in ['texto', 'script', 'pedido', 'prompt'])
+        && (!('text' in r) || str(r.text, 0, 200))
+        && (!('name' in r) || str(r.name, 0, 120));
+    }
+    // Para qué se necesita el script y en qué sistema (pedidos).
+    function validNeed(d) {
+      return (!('purpose' in d) || str(d.purpose, 0, 300))
+        && (!('system' in d) || str(d.system, 0, 40));
+    }
+
     // ---------- Equipos ----------
     match /teams/{teamId} {
       // Solo se lee por su código (get); nadie puede listar todos los equipos.
@@ -89,7 +105,7 @@ service cloud.firestore {
       allow read: if signedIn()
         && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
       allow create: if signedIn()
-        && request.resource.data.keys().hasOnly(['from', 'to', 'team', 'kind', 'text', 'script', 'prompt', 'requestId', 'createdAt', 'read'])
+        && request.resource.data.keys().hasOnly(['from', 'to', 'team', 'kind', 'text', 'script', 'prompt', 'requestId', 'createdAt', 'read', 'purpose', 'system', 'replyTo'])
         && request.resource.data.from == request.auth.uid
         && request.resource.data.to is string
         && request.resource.data.to != request.auth.uid
@@ -103,13 +119,16 @@ service cloud.firestore {
         && (request.resource.data.get('prompt', null) == null || validPrompt(request.resource.data.prompt))
         && (request.resource.data.kind != 'prompt' || request.resource.data.get('prompt', null) != null)
         && (request.resource.data.requestId == null || str(request.resource.data.requestId, 1, 60))
+        && validNeed(request.resource.data)
+        && (request.resource.data.get('replyTo', null) == null || validReply(request.resource.data.replyTo))
         && request.resource.data.createdAt == request.time
         && request.resource.data.read == false;
-      // El destinatario solo puede marcarlo como leído.
+      // El destinatario solo puede marcarlo como leído y decir si le sirvió.
       allow update: if signedIn()
         && resource.data.to == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read'])
-        && request.resource.data.read == true;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'reaction'])
+        && request.resource.data.read == true
+        && request.resource.data.get('reaction', '') in ['', 'sirvio', 'no-sirvio'];
       allow delete: if signedIn()
         && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
     }
@@ -118,13 +137,14 @@ service cloud.firestore {
     match /requests/{rid} {
       allow read: if inTeam(resource.data.team);
       allow create: if signedIn()
-        && request.resource.data.keys().hasOnly(['from', 'team', 'text', 'lang', 'category', 'createdAt', 'status'])
+        && request.resource.data.keys().hasOnly(['from', 'team', 'text', 'lang', 'category', 'createdAt', 'status', 'purpose', 'system'])
         && request.resource.data.from == request.auth.uid
         && request.resource.data.team == myTeam()
         && myTeam() != ''
         && str(request.resource.data.text, 1, 300)
         && (request.resource.data.lang == '' || request.resource.data.lang in langs())
         && str(request.resource.data.category, 0, 40)
+        && validNeed(request.resource.data)
         && request.resource.data.createdAt == request.time
         && request.resource.data.status == 'abierto';
       allow update: if signedIn()

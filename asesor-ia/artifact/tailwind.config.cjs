@@ -5,7 +5,7 @@ module.exports = {
     extend: {
       colors: {
         canvas: "#0b1117", panel: "#111a22", raised: "#17232d", line: "#24343f",
-        ink: "#e4ebef", mute: "#93a4af", faint: "#61727d",
+        ink: "#e4ebef", mute: "#93a4af", faint: "#7f909b",
         acc: { DEFAULT: "#f2a541", ink: "#1b1205" },
         good: "#4cc184", warn: "#f0b44c", bad: "#f07a62", info: "#6aa6ec",
       },

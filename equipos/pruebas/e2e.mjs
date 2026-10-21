@@ -4,7 +4,7 @@
 //   npx firebase emulators:exec --only auth,firestore,hosting --project demo-equipos "node pruebas/e2e.mjs"
 import http from "node:http";
 import assert from "node:assert/strict";
-import { writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { writeFileSync, rmSync, mkdirSync, readFileSync } from "node:fs";
 import worker from "../worker/src/index.js";
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -65,8 +65,9 @@ async function signUp(page, url, name, email) {
 }
 const uidOf = (page) => page.evaluate(() => window.Equipos.me().uid);
 
+let A, B;
 try {
-  const A = await person(), B = await person();
+  A = await person(); B = await person();
 
   console.log("Sesión y equipo");
   await A.goto(APP);
@@ -101,8 +102,14 @@ try {
   console.log("Pedido al equipo → aviso");
   await B.getByRole("button", { name: "Pedir un script" }).click();
   await B.getByPlaceholder("Ej.: uno que limpie la cola de impresión").fill("Necesito uno para reiniciar el audio");
+  await B.getByText("Falta contar para qué lo necesitas.").waitFor();
+  assert.ok(await B.getByRole("button", { name: "Pedir al equipo" }).isDisabled(), "sin «para qué» no deja pedir");
+  await B.getByPlaceholder(/la impresora de la sala 3/).fill("El PC de la sala 2 se quedó sin sonido");
+  await B.getByRole("button", { name: "Windows 11" }).click();
   await B.getByRole("button", { name: "Audio" }).click();
+  await B.screenshot({ path: new URL("11-pedido-para-que.png", SHOTS).pathname });
   await B.getByRole("button", { name: "Pedir al equipo" }).click();
+  step("pedir al equipo exige decir para qué; se elige sistema y tema");
   await A.getByText("📣 Amigo Técnico pide un script al equipo").waitFor();
   step("Jeiler recibe el aviso dentro de la app");
   const p1 = await waitFor(() => pushes.find((p) => p.token === "tok-jeiler"), "push del pedido");
@@ -113,6 +120,9 @@ try {
 
   console.log("Responder el pedido con un script");
   await A.getByText("Necesito uno para reiniciar el audio").first().waitFor();
+  await A.getByText("El PC de la sala 2 se quedó sin sonido").waitFor();
+  await A.getByText("Windows 11").first().waitFor();
+  step("el pedido muestra qué necesita, para qué y en qué sistema");
   await A.getByRole("button", { name: "Tengo uno: enviar" }).click();
   await A.getByText("Reparar servicio de audio (Audiosrv)").click();
   await B.getByText(/📜 Jeiler te envió «Reparar servicio de audio/).waitFor();
@@ -129,10 +139,53 @@ try {
   await B.screenshot({ path: new URL("3-chat-amigo.png", SHOTS).pathname });
   step("abre el chat desde el aviso y guarda el script en su biblioteca");
 
+  console.log("Chat interactivo: cómo usarlo, preguntar citando y «Me sirvió»");
+  await B.getByRole("button", { name: "¿Cómo lo uso?" }).click();
+  await B.getByText("Antes de empezar").waitFor();
+  await B.getByText("Necesita permisos de administrador.").waitFor();
+  assert.equal(await B.locator("code", { hasText: "-ExecutionPolicy Bypass -File" }).count(), 1, "trae el comando para ejecutarlo");
+  await B.screenshot({ path: new URL("12-como-usarlo.png", SHOTS).pathname });
+  step("«¿Cómo lo uso?» abre la guía automática: qué hace, permisos y pasos con comandos");
+  await B.getByRole("button", { name: "¿Dudas? Pregúntale a Jeiler" }).click();
+  await B.getByText("Respondiendo a Jeiler").waitFor();
+  const caja = B.getByPlaceholder(/Escribe a Jeiler/);
+  assert.equal(await caja.inputValue(), "¿Cómo uso «Reparar servicio de audio (Audiosrv)»? ");
+  await caja.press("End"); await caja.pressSequentially("¿Lo corro en PowerShell 7?");
+  await caja.press("Enter");
+  const pregunta = B.locator('[id^="msg-"]', { hasText: "¿Lo corro en PowerShell 7?" });
+  await pregunta.waitFor();
+  assert.equal(await pregunta.locator("button.border-l-2").count(), 1, "la pregunta sale citando el script");
+  step("desde la guía pregunta en el mismo chat, citando el script");
+  await B.getByRole("button", { name: "Me sirvió" }).click();
+  await B.getByText(/verá que te sirvió/).waitFor();
+  assert.equal(await B.getByRole("button", { name: "Me sirvió" }).getAttribute("aria-pressed"), "true");
+  step("Amigo marca «Me sirvió»");
+
   await A.getByRole("button", { name: "Chats" }).click();
   await A.getByText("Amigo Técnico").first().click();
-  await A.getByText("Visto").waitFor();
+  await A.getByText("Visto").first().waitFor();
   step("Jeiler ve «Visto» en su mensaje");
+  await A.getByText("A Amigo le sirvió").waitFor();
+  const preguntaA = A.locator('[id^="msg-"]', { hasText: "¿Lo corro en PowerShell 7?" });
+  await preguntaA.waitFor();
+  assert.ok((await preguntaA.locator("button.border-l-2").textContent()).startsWith("Tú"), "Jeiler ve que le citan su script");
+  step("Jeiler ve «A Amigo le sirvió» y la pregunta citando su script");
+  await preguntaA.getByRole("button", { name: "Opciones del mensaje" }).click();
+  await A.getByRole("button", { name: "Responder", exact: true }).click();
+  await A.getByText("Respondiendo a Amigo").waitFor();
+  await A.getByPlaceholder(/Escribe a Amigo/).fill("Sí, en PowerShell 7 y como administrador");
+  await A.keyboard.press("Enter");
+  const respuesta = B.locator('[id^="msg-"]', { hasText: "Sí, en PowerShell 7 y como administrador" });
+  await respuesta.waitFor();
+  assert.ok((await respuesta.locator("button.border-l-2").textContent()).includes("¿Lo corro en PowerShell 7?"), "Amigo ve la respuesta citando su pregunta");
+  await respuesta.locator("button.border-l-2").click();
+  await B.locator('[id^="msg-"] .ring-2', { hasText: "¿Lo corro en PowerShell 7?" }).waitFor();
+  await A.screenshot({ path: new URL("13-chat-citas.png", SHOTS).pathname });
+  for (const pg of [A, B]) {
+    const fuera = await pg.evaluate(() => [...document.querySelectorAll('[id^="msg-"] > div')].filter((e) => { const r = e.getBoundingClientRect(); return r.left < 0 || r.right > innerWidth + 1; }).length);
+    assert.equal(fuera, 0, "ningún mensaje se sale de la pantalla");
+  }
+  step("responder citando desde el menú del mensaje; tocar la cita lleva al mensaje original");
 
   await B.getByPlaceholder(/Escribe a Jeiler/).fill("¡Gracias, funcionó!");
   await B.keyboard.press("Enter");
@@ -144,9 +197,11 @@ try {
 
   console.log("Pedido directo y biblioteca");
   await A.getByRole("button", { name: "Pedir script" }).click();
-  await A.getByPlaceholder("Escribe qué script necesitas").fill("¿Tienes uno para la impresora?");
-  await A.getByRole("button", { name: "Enviar" }).last().click();
+  await A.getByPlaceholder("Ej.: uno que limpie la cola de impresión").fill("¿Tienes uno para la impresora?");
+  await A.getByPlaceholder(/la impresora de la sala 3/).fill("La de recepción no imprime");
+  await A.getByRole("button", { name: "Pedir", exact: true }).click();
   await B.getByText("Te pide un script").waitFor();
+  await B.getByText("La de recepción no imprime").waitFor();
   await A.screenshot({ path: new URL("4-chat-jeiler.png", SHOTS).pathname });
   step("pedido directo a una persona dentro del chat");
 
@@ -183,6 +238,21 @@ try {
   await B.screenshot({ path: new URL("8-grupo-amigo.png", SHOTS).pathname });
   step("Amigo lo ve al otro lado con el nombre de Jeiler (y marca que ya lo guardó)");
 
+  console.log("Con las reglas de Firestore anteriores no se pierde nada");
+  const RULES = "http://127.0.0.1:8080/emulator/v1/projects/demo-equipos:securityRules";
+  const reglas = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
+  const ponerReglas = (content) => fetch(RULES, { method: "PUT", body: JSON.stringify({ rules: { files: [{ name: "firestore.rules", content }] } }) }).then((r) => assert.ok(r.ok, "reglas cargadas"));
+  await ponerReglas(reglas.replace(/, 'purpose', 'system'(, 'replyTo')?/g, ""));
+  await A.locator("nav").getByRole("button", { name: /^Equipo/ }).click();
+  await A.getByRole("button", { name: "Pedir un script" }).click();
+  await A.getByPlaceholder("Ej.: uno que limpie la cola de impresión").fill("Uno para liberar espacio");
+  await A.getByPlaceholder(/la impresora de la sala 3/).fill("El disco C está lleno");
+  await A.getByRole("button", { name: "Pedir al equipo" }).click();
+  await A.getByText(/Enviado sin los datos nuevos/).waitFor();
+  await A.getByText(/Para: El disco C está lleno/).waitFor();
+  await ponerReglas(reglas);
+  step("si aún no se pegan las reglas nuevas, el «para qué» va dentro del texto y se avisa");
+
   console.log("Asesor IA conectado al equipo");
   await B.goto(APP + "/asesor/");
   await B.getByRole("button", { name: "Enviar a un compañero" }).waitFor({ timeout: 20000 });
@@ -196,7 +266,7 @@ try {
   step("el Asesor IA envía el prompt a un compañero con notificación");
   await B.getByText("← Equipo").waitFor();
   step("el Asesor muestra «← Equipo» para volver al Lanzador");
-  await B.getByRole("button", { name: /Perfil y memoria/ }).first().click();
+  await B.getByRole("button", { name: /^Perfil/ }).first().click();
   const campos = () => B.locator("#p-nombre, #p-rol, #p-sistema, #p-herramientas, #p-metas, #p-rutas, #p-noQuiero").count();
   await B.locator("#p-nivel").selectOption("basico");
   assert.equal(await campos(), 2, "básico: 2 campos");
@@ -218,6 +288,15 @@ try {
   console.log(`\n${passed} comprobaciones OK · ${pushes.length} avisos push enviados`);
 } catch (e) {
   console.error("FALLÓ:", e.message, "\nErrores de página:", errors);
+  for (const [n, pg] of [["A", A], ["B", B]]) if (pg) await pg.screenshot({ path: new URL("falla-" + n + ".png", SHOTS).pathname }).catch(() => {});
+  if (B) console.error("Diagnóstico B:", JSON.stringify(await B.evaluate(async () => {
+    try {
+      const E = window.Equipos, u = E.me();
+      const p = await new Promise((ok) => { let off = () => {}; off = E.watchProfile(u.uid, (x) => { setTimeout(() => off(), 0); ok(x); }, (e) => ok({ err: e.code })); });
+      const m = await new Promise((ok) => { let off = () => {}; off = E.watchMembers(p.team, (l) => { setTimeout(() => off(), 0); ok(l.map((x) => x.name + "/" + x.team)); }, (e) => ok("ERR " + e.code + " " + e.message)); });
+      return { uid: u.uid, team: p.team, m };
+    } catch (e) { return "excepción " + e.message; }
+  }).catch((e) => e.message)));
   process.exitCode = 1;
 } finally {
   await browser.close();

@@ -194,17 +194,52 @@
     await write;
     return after();
   }
-  async function sendMessage(profile, to, { kind, text, script, prompt, requestId }) {
+  // Datos nuevos de un mensaje o pedido: para qué lo necesita, en qué sistema y a qué mensaje responde.
+  const KINDS = ["texto", "script", "pedido", "prompt"];
+  const REACTIONS = ["", "sirvio", "no-sirvio"];
+  const clip = (v, n) => String(v || "").trim().slice(0, n);
+  function extrasOf({ purpose, system, replyTo }) {
+    const x = {};
+    if (clip(purpose, 300)) x.purpose = clip(purpose, 300);
+    if (clip(system, 40)) x.system = clip(system, 40);
+    if (replyTo && replyTo.id) {
+      x.replyTo = { id: clip(replyTo.id, 60), kind: KINDS.includes(replyTo.kind) ? replyTo.kind : "texto", text: clip(replyTo.text, 140), name: clip(replyTo.name, 120) };
+    }
+    return x;
+  }
+  // Con las reglas de Firestore anteriores esos datos no se aceptan: se mandan dentro del texto para no perderlos.
+  let oldRules = false;
+  const rulesOutdated = () => oldRules;
+  function legacyText(text, x, max) {
+    return [x.replyTo ? "↪ «" + (x.replyTo.name || x.replyTo.text) + "»" : "", text, x.purpose ? "Para: " + x.purpose : "", x.system ? "Sistema: " + x.system : ""].filter(Boolean).join("\n").slice(0, max);
+  }
+  function setWithFallback(ref, base, extra, max) {
+    if (!Object.keys(extra).length) return ref.set(base);
+    return ref.set(Object.assign({}, base, extra)).catch((e) => {
+      if (!e || e.code !== "permission-denied") throw e;
+      oldRules = true;
+      return ref.set(Object.assign({}, base, { text: legacyText(base.text, extra, max) }));
+    });
+  }
+  async function sendMessage(profile, to, { kind, text, script, prompt, requestId, purpose, system, replyTo }) {
     const ref = messages().doc();
-    const write = ref.set({
+    const write = setWithFallback(ref, {
       from: me().uid, to: to, team: profile.team, kind: kind || "texto",
       text: String(text || "").slice(0, 2000),
       script: script ? cleanForSend(script) : null,
       prompt: prompt ? { title: String(prompt.title || "").slice(0, 120), text: String(prompt.text).slice(0, 20000), model: String(prompt.model || "").slice(0, 60) } : null,
       requestId: requestId || null,
       createdAt: FV().serverTimestamp(), read: false,
-    });
+    }, extrasOf({ purpose, system, replyTo }), 2000);
     return { id: ref.id, pushed: await committed(write, () => notify({ messageId: ref.id })) };
+  }
+  // «Me sirvió» / «No me funcionó» sobre un script recibido (solo quien lo recibió).
+  function react(id, reaction) {
+    if (!REACTIONS.includes(reaction)) return Promise.reject(new Error("Reacción inválida"));
+    return messages().doc(id).update({ read: true, reaction: reaction }).catch((e) => {
+      if (e && e.code === "permission-denied") { oldRules = true; throw new Error("Quien administra la app debe actualizar las reglas de Firestore para usar esta opción."); }
+      throw e;
+    });
   }
   // Las listas ordenadas por fecha necesitan un índice compuesto de Firestore. Si todavía no existe
   // (proyecto nuevo o índice construyéndose), se escucha la misma consulta sin orden y se ordena aquí,
@@ -249,9 +284,10 @@
   const deleteMessage = (id) => messages().doc(id).delete();
 
   // ---------- Pedidos al equipo ----------
-  async function createRequest(profile, text, category) {
+  async function createRequest(profile, text, category, more) {
     const ref = db.collection("requests").doc();
-    const write = ref.set({ from: me().uid, team: profile.team, text: String(text).trim().slice(0, 300), lang: "", category: String(category || "").slice(0, 40), createdAt: FV().serverTimestamp(), status: "abierto" });
+    const x = extrasOf({ purpose: more && more.purpose, system: more && more.system });
+    const write = setWithFallback(ref, { from: me().uid, team: profile.team, text: String(text).trim().slice(0, 300), lang: "", category: String(category || "").slice(0, 40), createdAt: FV().serverTimestamp(), status: "abierto" }, x, 300);
     return { id: ref.id, pushed: await committed(write, () => notify({ requestId: ref.id })) };
   }
   const watchRequests = (team, fn, err) => watchOrdered(db.collection("requests").where("team", "==", team), "createdAt", 60, msgFromDoc, fn, err);
@@ -366,7 +402,7 @@
     signInGoogle, signUpEmail, signInEmail, resetPassword, signOut, onAuth, me, providerLabel, authMessage,
     watchProfile, saveProfile, createTeam, getTeam, joinTeam, leaveTeam, renameTeam, inviteLink, cleanCode, formatCode, watchMembers,
     startPresence, stopPresence, setStatus, presence, ago, millis,
-    sendMessage, watchInbox, watchOutbox, markRead, deleteMessage,
+    sendMessage, watchInbox, watchOutbox, markRead, deleteMessage, react, rulesOutdated,
     createRequest, watchRequests, setRequestStatus, deleteRequest,
     watchLibrary, saveScript, deleteScript, saveCopy,
     publish, unpublish, watchCommunity, watchOrdered,

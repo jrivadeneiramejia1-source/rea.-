@@ -9,9 +9,9 @@ Rama de trabajo en los tres repositorios: `ccr-72c56d0d-kjvseq`. No hay PR abier
 |---|---|---|---|
 | 1 | Equipos: la cámara no abría al escanear | `apps-consulta-previa` | Hecho (v27, commit 22e6c67). Lector dentro de la app (`lib/codigos/`), cámara al instante, sin `zoom: true` (abría un 2.º permiso en Android), errores explicados con Reintentar. `pruebas/camara.mjs`: 36 bien. |
 | 2 | Entregas: a veces la hoja no se ve bien | `apps-consulta-previa` | Hecho (v27, commit 6bb8ba3). Aviso de foto borrosa u oscura con Repetir. `pruebas/escaner.mjs`: 191 bien. Suite completa: 0 fallas. |
-| 3 | Mis claves: recuperar la clave maestra por correo o número | `mis-claves` | En curso. Diseño abajo. |
-| 4 | Asesor IA: revisar y agregar lo pertinente | `rea.-/asesor-ia` | Pendiente. |
-| 5 | Lanzador · Equipos: mejor interfaz, pedir script diciendo para qué, chat interactivo (preguntar cómo usar un script) | `rea.-/equipos` | Pendiente. |
+| 3 | Mis claves: recuperar la clave maestra por correo o número | `mis-claves` | Hecho (v2.4, commit 0099d35). Código de recuperación (correo, WhatsApp, SMS, copiar, descargar) y «¿Olvidaste tu clave maestra?». Suite completa en verde (recuperacion.mjs 72, reglas Firestore 35). Falta que Jeiler pegue las reglas nuevas en Firebase y vuelva a subir `sitio/` al Worker «mis-claves». |
+| 4 | Asesor IA: revisar y agregar lo pertinente | `rea.-/asesor-ia` | Hecho (v3.1, artifact versión 7). Auditoría con navegador: soporte técnico bien clasificado, errores de PowerShell como datos, ocultar datos sensibles, puntaje honesto, no perder respuestas ni ediciones, accesibilidad y 390 px. Pruebas: `pruebas/motor.mjs` 37, `pruebas/interfaz.mjs` 15. |
+| 5 | Lanzador · Equipos: mejor interfaz, pedir script diciendo para qué, chat interactivo (preguntar cómo usar un script) | `rea.-/equipos` | Hecho. Pedido con «para qué» y sistema; responder citando; «¿Cómo lo uso?» con guía automática; «Me sirvió / No me funcionó»; días y animaciones cortas. Arreglado el puente del Asesor (lista del equipo vacía si se tocaba rápido). Reglas 73, e2e 29 (3 de 3 corridas). Falta que Jeiler pegue las reglas nuevas y suba el zip. |
 
 ## Diseño de la recuperación de Mis claves (sin romper el cifrado)
 

@@ -7,7 +7,8 @@
   "use strict";
   const LIBS = ["/vendor/firebase-app-compat.js", "/vendor/firebase-auth-compat.js", "/vendor/firebase-firestore-compat.js", "/vendor/firebase-messaging-compat.js", "/motor.js", "/equipos.js"];
   const C = { bg: "#111a16", raised: "#17231d", line: "#263730", ink: "#e2ebe6", mute: "#8fa39a", acc: "#3ddc84", accInk: "#06240f", bad: "#f07a62" };
-  let readyP = null, state = { user: null, profile: null, members: [] };
+  let readyP = null, state = { user: null, profile: null, members: [], loaded: false };
+  let onMembers = null;   // la ventana «¿A quién…?» abierta se vuelve a dibujar cuando cambia el equipo
 
   const load = (src) => new Promise((ok, bad) => { const s = document.createElement("script"); s.src = src; s.onload = ok; s.onerror = () => bad(new Error("No cargó " + src)); document.head.appendChild(s); });
   function ready() {
@@ -20,7 +21,7 @@
       if (state.user) {
         state.profile = await new Promise((ok) => { const off = E.watchProfile(state.user.uid, (p, confirmed) => { if (!confirmed && p) return; off(); ok(p); }, () => ok(null)); });
         if (state.profile && state.profile.team) {
-          E.watchMembers(state.profile.team, (m) => { state.members = m; }, () => {});
+          E.watchMembers(state.profile.team, (m) => { state.members = m; state.loaded = true; if (onMembers) onMembers(); }, () => { state.loaded = true; if (onMembers) onMembers(); });
           watchUnread(E);
         }
       }
@@ -54,12 +55,19 @@
   }
   function pickMember(E, prompt) {
     return new Promise((resolve) => {
-      const others = state.members.filter((p) => p.uid !== state.user.uid);
       const m = modal("¿A quién le envías el prompt?");
-      m.onClose(() => resolve(null));
-      if (!others.length) m.box.appendChild(el("p", `color:${C.mute};font-size:14px`, "Aún no hay más personas en tu equipo. Invítalas desde la app."));
-      const now = Date.now();
-      others.forEach((p) => {
+      const list = el("div");
+      m.box.appendChild(list);
+      m.onClose(() => { onMembers = null; resolve(null); });
+      // La lista del equipo puede llegar un momento después: la ventana se actualiza sola.
+      const paint = () => {
+        list.textContent = "";
+        const others = state.members.filter((p) => p.uid !== state.user.uid);
+        if (!others.length) list.appendChild(el("p", `color:${C.mute};font-size:14px`, state.loaded && state.members.length ? "Aún no hay más personas en tu equipo. Invítalas desde la app." : "Cargando tu equipo…"));
+        const now = Date.now();
+        others.forEach((p) => addRow(p, now));
+      };
+      const addRow = (p, now) => {
         const pr = E.presence(p, now);
         const row = el("button", `display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:10px;margin-bottom:6px;border-radius:12px;border:1px solid ${C.line};background:${C.raised};color:${C.ink};cursor:pointer`);
         const dot = el("span", `width:10px;height:10px;border-radius:50%;flex:none;background:${pr.online ? (p.status === "ocupado" ? C.bad : p.status === "ausente" ? "#f0b44c" : C.acc) : "#5d706a"}`);
@@ -71,13 +79,15 @@
           row.disabled = true;
           try {
             const r = await E.sendMessage(state.profile, p.uid, { kind: "prompt", text: "", prompt: prompt });
-            m.close();
+            onMembers = null; m.close();
             const first = p.name.split(" ")[0];
             resolve(r.pushed && r.pushed.ok && r.pushed.sent ? "Enviado a " + first + ": le llegó la notificación." : r.pushed && r.pushed.ok ? "Enviado a " + first + ". Aún no activa notificaciones: lo verá al abrir la app." : "Enviado a " + first + ".");
-          } catch (e) { m.close(); resolve("No se envió: " + (e.code === "permission-denied" ? "esa persona ya no está en tu equipo." : e.message)); }
+          } catch (e) { onMembers = null; m.close(); resolve("No se envió: " + (e.code === "permission-denied" ? "esa persona ya no está en tu equipo." : e.message)); }
         };
-        m.box.appendChild(row);
-      });
+        list.appendChild(row);
+      };
+      onMembers = paint;
+      paint();
     });
   }
 
