@@ -107,6 +107,8 @@ Solo la app, sin notificaciones push: `pwsh -File .\instalar.ps1 -ProyectoId lan
 
 ### Actualizar después de cambios
 
+**Versión con avisos al día y limpieza automática:** las reglas no cambian. Hay que publicar la app y el Worker (los 3 comandos de abajo); el Worker ahora también quita los tokens de otro proyecto.
+
 **Versión con «para qué», citas y «Me sirvió»:** hay que volver a pegar las reglas (`3-reglas-firestore.txt` del zip) en Firestore → Reglas → Publicar. Mientras no se peguen, la app sigue funcionando: el «para qué» y el sistema viajan dentro del texto, la cita no se guarda y «Me sirvió» avisa que faltan las reglas. El Worker no cambia.
 
 ```powershell
@@ -123,6 +125,10 @@ Set-Location worker; npx wrangler deploy; Set-Location ..
 3. **Perfil → Activar en este dispositivo** en cada celular o PC donde quieras avisos → **Enviar prueba**.
 
 En iPhone las notificaciones solo funcionan con la app agregada a inicio (iOS 16.4 o más nuevo).
+
+**Avisos que no llegan**: cada celular o PC se activa por separado. Al entrar en un dispositivo donde nunca se decidió, la app ofrece activarlos una vez. Donde ya hay permiso, al abrir la app el token de avisos se pone al día solo (Firebase lo cambia con el tiempo y antes quedaba el viejo). El Worker quita los tokens que ya no sirven.
+
+**Limpieza automática** (para no llenar el plan gratis de Firebase): cada persona borra al abrir la app, máximo dos veces al día, sus mensajes leídos de más de 7 días, todos los de más de 30 y sus pedidos resueltos de más de 7 días. El chat lo avisa abajo; los scripts que sirvan se guardan en **Mis scripts**. Si un día se acaba el cupo gratis, la app lo dice en palabras sencillas y sigue con lo que ya tiene.
 
 ## Archivos
 

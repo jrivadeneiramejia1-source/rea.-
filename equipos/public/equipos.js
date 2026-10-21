@@ -10,6 +10,9 @@
   const HEARTBEAT_MS = 2 * 60 * 1000;   // latido de presencia cada 2 min mientras la app está abierta
   const STATUSES = { disponible: "Disponible", ocupado: "Ocupado", ausente: "Ausente" };
   const CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sin 0/O ni 1/I para dictarlo sin errores
+  const DAY = 24 * 60 * 60 * 1000;
+  // Limpieza para no llenar el plan gratis de Firebase: lo leído se borra a los 7 días y todo a los 30.
+  const KEEP_READ = 7 * DAY, KEEP_ALL = 30 * DAY, CLEAN_EVERY = DAY / 2;
 
   let app = null, auth = null, db = null, cfg = {}, swReg = null;
   const FV = () => root.firebase.firestore.FieldValue;
@@ -63,6 +66,14 @@
     "auth/unauthorized-domain": "Este dominio no está autorizado en Firebase (Authentication → Settings → Authorized domains).",
   };
   const authMessage = (e) => AUTH_ERRORS[e && e.code] || (e && e.message) || "No se pudo iniciar sesión.";
+  // Errores de Firestore en palabras sencillas (la app sigue funcionando con lo que ya tiene).
+  function errorText(e) {
+    const c = e && e.code;
+    if (c === "resource-exhausted") return "Se acabó por hoy el cupo gratis de Firebase. Lo que ya tienes sigue a la mano; mañana vuelve a funcionar todo.";
+    if (c === "permission-denied") return "sin permiso";
+    if (c === "unavailable") return "sin conexión con Firebase; se reintenta solo";
+    return (e && e.message) || String(e);
+  }
 
   async function signInGoogle() {
     const provider = new root.firebase.auth.GoogleAuthProvider();
@@ -85,7 +96,7 @@
   const resetPassword = (email) => auth.sendPasswordResetEmail(email.trim());
   async function signOut() {
     stopPresence();
-    await removeThisDevice().catch(() => {});
+    await removeThisDevice(false).catch(() => {});
     await auth.signOut();
   }
   const onAuth = (fn) => auth.onAuthStateChanged(fn);
@@ -283,6 +294,41 @@
   }
   const deleteMessage = (id) => messages().doc(id).delete();
 
+  // ---------- Limpieza automática ----------
+  // Cada persona borra lo suyo (mensajes que mandó o recibió y sus pedidos), máximo dos veces al día por dispositivo.
+  const oldMessage = (m, now) => now - m.at > KEEP_ALL || (m.read && now - m.at > KEEP_READ);
+  const oldRequest = (r, now) => now - r.at > KEEP_ALL || (r.status === "resuelto" && now - r.at > KEEP_READ);
+  async function cleanup(known, opts) {
+    const u = me(); if (!u) return { deleted: 0 };
+    const key = "equipos.limpieza." + u.uid, now = Date.now();
+    if (!(opts && opts.force) && now - Number(lsGet(key) || 0) < CLEAN_EVERY) return { deleted: 0, skipped: true };
+    lsSet(key, String(now));
+    const found = new Map();
+    const add = (list) => (list || []).forEach((m) => { if (m && m.id && (m.to === u.uid || m.from === u.uid)) found.set(m.id, m); });
+    add(known && known.inbox); add(known && known.outbox);
+    // Lo que no alcanzó a cargarse (las listas traen los 300 más recientes) se busca aparte.
+    const before = root.firebase.firestore.Timestamp.fromMillis(now - KEEP_READ);
+    for (const field of ["to", "from"]) {
+      const s = await messages().where(field, "==", u.uid).where("createdAt", "<", before).limit(300).get().catch(() => null);
+      if (s) add(s.docs.map(msgFromDoc));
+    }
+    const reqs = new Map();
+    (known && known.requests || []).forEach((r) => reqs.set(r.id, r));
+    if (known && known.team) {
+      const s = await db.collection("requests").where("team", "==", known.team).where("from", "==", u.uid).limit(200).get().catch(() => null);
+      if (s) s.docs.forEach((d) => reqs.set(d.id, msgFromDoc(d)));
+    }
+    const refs = Array.from(found.values()).filter((m) => oldMessage(m, now)).map((m) => messages().doc(m.id))
+      .concat(Array.from(reqs.values()).filter((r) => r.from === u.uid && oldRequest(r, now)).map((r) => db.collection("requests").doc(r.id)));
+    let deleted = 0;
+    for (let i = 0; i < refs.length; i += 400) {
+      const batch = db.batch();
+      refs.slice(i, i + 400).forEach((ref) => batch.delete(ref));
+      await batch.commit().then(() => { deleted += Math.min(400, refs.length - i); }, () => {});
+    }
+    return { deleted: deleted };
+  }
+
   // ---------- Pedidos al equipo ----------
   async function createRequest(profile, text, category, more) {
     const ref = db.collection("requests").doc();
@@ -337,29 +383,56 @@
   const TOKEN_KEY = "equipos.fcmToken";
   const pushReady = () => !!(cfg.vapidKey && cfg.notifyUrl);
 
+  const PUSH_OFF = "equipos.avisosApagados";   // la persona quitó este dispositivo a propósito
+  const lsGet = (k) => { try { return localStorage.getItem(k) || ""; } catch (e) { return ""; } };
+  const lsSet = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) { /* sin almacenamiento */ } };
+
   async function enablePush() {
     if (!pushSupported()) throw new Error(isIOS() && !isStandalone() ? "En iPhone primero agrega la app a la pantalla de inicio (Compartir → Agregar a inicio) y ábrela desde el ícono." : "Este navegador no permite notificaciones push.");
     if (!pushReady()) throw new Error("Las notificaciones push aún no están configuradas (falta la clave web push o la dirección del Worker en config.js).");
     const perm = await Notification.requestPermission();
     if (perm !== "granted") throw new Error(perm === "denied" ? "Bloqueaste las notificaciones. Actívalas en el candado de la barra de direcciones → Notificaciones → Permitir." : "No diste permiso para notificaciones.");
+    lsSet(PUSH_OFF, "");
+    return (await registerToken(true)).token;
+  }
+  // El token de avisos cambia con el tiempo (Firebase lo renueva, se actualiza la app o se entra con otra cuenta).
+  // Si la lista guarda uno viejo, el Worker «envía» pero al teléfono no le llega: por eso se revisa al abrir la app.
+  async function registerToken(force) {
     const reg = swReg || (await navigator.serviceWorker.ready);
     const token = await root.firebase.messaging().getToken({ vapidKey: cfg.vapidKey, serviceWorkerRegistration: reg });
     if (!token) throw new Error("Firebase no entregó el token de notificaciones.");
-    const ref = db.collection("devices").doc(me().uid);
+    const old = thisToken(), ref = db.collection("devices").doc(me().uid);
+    let changed = false;
     await db.runTransaction(async (tx) => {
       const d = await tx.get(ref);
-      const list = (d.exists && Array.isArray(d.data().tokens) ? d.data().tokens : []).filter((t) => t && t.token !== token);
-      list.unshift({ token: token, label: deviceLabel(), addedAt: Date.now() });
-      tx.set(ref, { tokens: list.slice(0, 10) });
+      const list = d.exists && Array.isArray(d.data().tokens) ? d.data().tokens : [];
+      const mine = list.find((t) => t && t.token === token);
+      if (!force && mine && old === token && Date.now() - (mine.seenAt || mine.addedAt || 0) < DAY) return;
+      const rest = list.filter((t) => t && t.token !== token && t.token !== old);
+      rest.unshift({ token: token, label: deviceLabel(), addedAt: (mine && mine.addedAt) || Date.now(), seenAt: Date.now() });
+      tx.set(ref, { tokens: rest.slice(0, 10) });
+      changed = true;
     });
-    try { localStorage.setItem(TOKEN_KEY, token); } catch (e) { /* sin almacenamiento */ }
-    return token;
+    lsSet(TOKEN_KEY, token);
+    return { token: token, changed: changed };
   }
-  const thisToken = () => { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (e) { return ""; } };
+  // Al abrir la app: si este dispositivo ya dio permiso, su token queda al día sin preguntar nada.
+  async function refreshPush() {
+    if (!me() || !pushSupported() || !pushReady() || Notification.permission !== "granted" || lsGet(PUSH_OFF)) return { ok: false };
+    try { return Object.assign({ ok: true }, await registerToken(false)); } catch (e) { return { ok: false, reason: e.message }; }
+  }
+  // ¿Conviene ofrecer activar los avisos aquí? (permiso sin decidir y sin haberlo ofrecido en la última semana).
+  const PUSH_ASKED = "equipos.avisosOfrecidos";
+  function shouldOfferPush() {
+    if (!pushSupported() || !pushReady() || Notification.permission !== "default" || lsGet(PUSH_OFF)) return false;
+    return Date.now() - Number(lsGet(PUSH_ASKED) || 0) > 7 * DAY;
+  }
+  const pushOffered = () => lsSet(PUSH_ASKED, String(Date.now()));
+  const thisToken = () => lsGet(TOKEN_KEY);
   function watchDevices(fn) {
     return db.collection("devices").doc(me().uid).onSnapshot((d) => fn(d.exists && Array.isArray(d.data().tokens) ? d.data().tokens : []), () => fn([]));
   }
-  async function removeDevice(token) {
+  async function removeDevice(token, manual) {
     const ref = db.collection("devices").doc(me().uid);
     await db.runTransaction(async (tx) => {
       const d = await tx.get(ref);
@@ -368,10 +441,12 @@
     });
     if (token === thisToken()) {
       await root.firebase.messaging().deleteToken().catch(() => {});
-      try { localStorage.removeItem(TOKEN_KEY); } catch (e) { /* sin almacenamiento */ }
+      lsSet(TOKEN_KEY, "");
+      if (manual !== false) lsSet(PUSH_OFF, "1");
     }
   }
-  async function removeThisDevice() { const t = thisToken(); if (t && me()) await removeDevice(t); }
+  // Al cerrar sesión se quita el dispositivo, pero al volver a entrar se registra solo (ya había permiso).
+  async function removeThisDevice(manual) { const t = thisToken(); if (t && me()) await removeDevice(t, manual); }
 
   // Pide al Worker que mande el aviso. Si falla, el mensaje igual quedó enviado (lo verá al abrir la app).
   const notify = (body) => callWorker("/notify", body);
@@ -402,11 +477,11 @@
     signInGoogle, signUpEmail, signInEmail, resetPassword, signOut, onAuth, me, providerLabel, authMessage,
     watchProfile, saveProfile, createTeam, getTeam, joinTeam, leaveTeam, renameTeam, inviteLink, cleanCode, formatCode, watchMembers,
     startPresence, stopPresence, setStatus, presence, ago, millis,
-    sendMessage, watchInbox, watchOutbox, markRead, deleteMessage, react, rulesOutdated,
+    sendMessage, watchInbox, watchOutbox, markRead, deleteMessage, react, rulesOutdated, cleanup, errorText, KEEP_READ_DAYS: 7, KEEP_ALL_DAYS: 30,
     createRequest, watchRequests, setRequestStatus, deleteRequest,
     watchLibrary, saveScript, deleteScript, saveCopy,
     publish, unpublish, watchCommunity, watchOrdered,
-    pushSupported, pushReady, isIOS, isStandalone, enablePush, watchDevices, removeDevice, thisToken, testPush, localNotify, deviceLabel,
+    pushSupported, pushReady, isIOS, isStandalone, enablePush, refreshPush, shouldOfferPush, pushOffered, watchDevices, removeDevice, thisToken, testPush, localNotify, deviceLabel,
   };
   root.Equipos = api;
 })(window);

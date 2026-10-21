@@ -45,7 +45,10 @@ const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePa
 const errors = [];
 async function person() {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: "es-CO" });
+  // El ofrecimiento de avisos al entrar se prueba aparte (al final): aquí ya cuenta como ofrecido.
+  await ctx.addInitScript(() => { try { if (!localStorage.getItem("__e2e")) { localStorage.setItem("__e2e", "1"); localStorage.setItem("equipos.avisosOfrecidos", String(Date.now())); } } catch (e) {} });
   const page = await ctx.newPage();
+  page.ctx = ctx;
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => { if (m.type() === "error" && !/emulator|ERR_|Failed to load resource|messaging|net::/i.test(m.text())) errors.push(m.text()); });
   return page;
@@ -282,6 +285,68 @@ try {
   await A.getByRole("link", { name: "Abrir el Asesor IA" }).click();
   await A.waitForURL(/\/asesor\//);
   step("el Lanzador abre el Asesor IA desde arriba");
+
+  console.log("Limpieza automática (plan gratis de Firebase)");
+  const dias = (n) => new Date(Date.now() - n * 864e5).toISOString();
+  const crear = (col, id, f) => admin(`${col}?documentId=${id}`, { method: "POST", body: JSON.stringify({ fields: f }) });
+  const S = (v) => ({ stringValue: v }), T = (n) => ({ timestampValue: dias(n) }), Bo = (v) => ({ booleanValue: v });
+  const msg = (read, n) => ({ from: S(uidA), to: S(uidB), team: S(code.replace(/-/g, "")), kind: S("texto"), text: S("viejo"), script: { nullValue: null }, requestId: { nullValue: null }, createdAt: T(n), read: Bo(read) });
+  await crear("messages", "viejoLeido", msg(true, 8));
+  await crear("messages", "viejoSinLeer", msg(false, 8));
+  await crear("messages", "muyViejo", msg(false, 31));
+  await crear("messages", "recienLeido", msg(true, 2));
+  const req = (from, status, n) => ({ from: S(from), team: S(code.replace(/-/g, "")), text: S("pedido viejo"), lang: S(""), category: S(""), createdAt: T(n), status: S(status) });
+  await crear("requests", "pedidoResuelto", req(uidB, "resuelto", 8));
+  await crear("requests", "pedidoAbierto", req(uidB, "abierto", 8));
+  await crear("requests", "pedidoDeOtro", req(uidA, "resuelto", 8));
+  const limpieza = await B.evaluate((team) => window.Equipos.cleanup({ team: team }, { force: true }), code.replace(/-/g, ""));
+  const existe = async (p) => !(await admin(p)).error;
+  assert.equal(await existe("messages/viejoLeido"), false, "leído hace 8 días: se borra");
+  assert.equal(await existe("messages/muyViejo"), false, "31 días: se borra aunque no se haya leído");
+  assert.equal(await existe("messages/viejoSinLeer"), true, "sin leer y de 8 días: se guarda");
+  assert.equal(await existe("messages/recienLeido"), true, "leído hace 2 días: se guarda");
+  assert.equal(await existe("requests/pedidoResuelto"), false, "pedido resuelto hace 8 días: se borra");
+  assert.equal(await existe("requests/pedidoAbierto"), true, "pedido abierto de 8 días: se guarda");
+  assert.equal(await existe("requests/pedidoDeOtro"), true, "lo de otra persona no lo borra");
+  assert.equal(limpieza.deleted, 3);
+  step("se borran solos lo leído de más de 7 días, todo lo de más de 30 y los pedidos resueltos");
+  assert.equal((await B.evaluate(() => window.Equipos.cleanup({}))).skipped, true);
+  step("la limpieza corre máximo dos veces al día por dispositivo");
+
+  console.log("Avisos: el token del teléfono se mantiene al día");
+  await B.ctx.grantPermissions(["notifications"], { origin: APP });
+  const tokensB = async () => ((await admin(`devices/${uidB}`)).fields.tokens.arrayValue.values || []).map((v) => v.mapValue.fields.token.stringValue);
+  const r1 = await B.evaluate(async () => {
+    localStorage.setItem("equipos.fcmToken", "tok-amigo");   // el que este teléfono tenía guardado
+    window.firebase.messaging = () => ({ getToken: async () => "tok-amigo-2", deleteToken: async () => true });
+    return window.Equipos.refreshPush();
+  });
+  assert.equal(r1.changed, true);
+  assert.deepEqual(await tokensB(), ["tok-amigo-2"], "el token viejo de este teléfono se reemplaza");
+  assert.equal(await B.evaluate(() => localStorage.getItem("equipos.fcmToken")), "tok-amigo-2");
+  assert.equal((await B.evaluate(() => window.Equipos.refreshPush())).changed, false, "si nada cambió no escribe");
+  step("al abrir la app, si Firebase cambió el token se actualiza solo (sin eso los avisos no llegaban)");
+  const antes = pushes.length;
+  await A.goto(APP + "/?chat=" + uidB);
+  await A.getByLabel("Mensaje para Amigo Técnico").fill("¿Te llegó este aviso?");
+  await A.keyboard.press("Enter");
+  const p4 = await waitFor(() => pushes.slice(antes).find((p) => p.webpush.notification.title === "💬 Jeiler"), "push del chat interno");
+  assert.equal(p4.token, "tok-amigo-2");
+  step("el mensaje del chat interno avisa al token nuevo");
+  await A.getByText("Los mensajes se borran solos 7 días después de leídos").waitFor();
+  step("el chat dice cuándo se borran los mensajes");
+
+  console.log("Teléfono nuevo: se ofrecen los avisos");
+  await A.evaluate(() => localStorage.removeItem("equipos.avisosOfrecidos"));
+  await A.goto(APP);
+  await A.getByText("¿Avisos en este dispositivo?").waitFor({ timeout: 10000 });
+  await A.screenshot({ path: new URL("12-ofrecer-avisos.png", SHOTS).pathname });
+  await A.getByRole("button", { name: "Ahora no" }).click();
+  await A.reload();
+  await A.getByRole("button", { name: /^Equipo/ }).first().waitFor();
+  await new Promise((ok) => setTimeout(ok, 3500));
+  assert.equal(await A.getByText("¿Avisos en este dispositivo?").count(), 0, "no insiste otra vez el mismo día");
+  step("en un teléfono sin avisos se ofrece activarlos una vez (y no insiste)");
 
   assert.deepEqual(errors, [], "sin errores de JavaScript");
   step("sin errores de JavaScript en la consola");

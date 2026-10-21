@@ -529,6 +529,7 @@
       </div>`}>
       <div className="max-w-3xl mx-auto px-3 pt-1 pb-3">
         ${msgs.length ? rows : html`<${Empty} icon="MessagesSquare" title=${"Empieza a hablar con " + other.name}>Envíale un script o pídele el que necesitas, diciendo para qué. Toca un mensaje para responderlo citándolo.<//>`}
+        <p className="text-[11px] text-faint text-center pt-3 flex items-center justify-center gap-1"><${Icon} name="Clock" size=${12} />Los mensajes se borran solos ${E.KEEP_READ_DAYS} días después de leídos (o a los ${E.KEEP_ALL_DAYS}). Guarda en tus scripts lo que te sirva.</p>
       </div>
     <//>`;
   }
@@ -776,6 +777,7 @@
     const stackRef = useRef(stack); stackRef.current = stack;
     const membersRef = useRef(members); membersRef.current = members;
     const devicesRef = useRef(devices); devicesRef.current = devices;
+    const listsRef = useRef({}); listsRef.current = { inbox: inbox, outbox: outbox, requests: requests };
 
     // Pila de pantallas: el botón Atrás del celular cierra la última, como en Teams.
     // Se usa una sola entrada de historial como "trampa" mientras haya capas abiertas.
@@ -809,7 +811,7 @@
 
     // Suscripciones a Firestore.
     useEffect(() => {
-      const err = (what) => (e) => toast("Error al leer " + what + ": " + (e.code === "permission-denied" ? "sin permiso" : e.message));
+      const err = (what) => (e) => toast(e.code === "resource-exhausted" ? E.errorText(e) : "Error al leer " + what + ": " + E.errorText(e), { ms: 8000 });
       const subs = [
         E.watchMembers(profile.team, setMembers, err("el equipo")),
         E.watchOutbox(meUid, setOutbox, err("tus mensajes")),
@@ -829,7 +831,17 @@
       ];
       E.getTeam(profile.team).then(setTeam);
       E.startPresence(meUid);
-      return () => { subs.forEach((u) => u && u()); E.stopPresence(); };
+      // Avisos: deja al día el token de este dispositivo; si nunca se decidió aquí (p. ej. un teléfono nuevo), se ofrece.
+      E.refreshPush();
+      const offer = setTimeout(() => {
+        if (!E.shouldOfferPush()) return;
+        E.pushOffered();
+        confirm("¿Avisos en este dispositivo?", "Así te llegan los mensajes del chat y los pedidos aunque la app esté cerrada. Cada teléfono o PC se activa por separado.", "Activar avisos",
+          () => E.enablePush().then(() => toast("Notificaciones activadas en este dispositivo."), (e) => toast(e.message)), { kind: "primary", cancel: "Ahora no" });
+      }, 2500);
+      // Limpieza de mensajes viejos (cuando ya cargaron las listas).
+      const clean = setTimeout(() => { E.cleanup({ team: profile.team, inbox: listsRef.current.inbox, outbox: listsRef.current.outbox, requests: listsRef.current.requests }).catch(() => {}); }, 8000);
+      return () => { clearTimeout(offer); clearTimeout(clean); subs.forEach((u) => u && u()); E.stopPresence(); };
     }, [profile.team, meUid]);
 
     const who = (uid) => membersRef.current.find((m) => m.uid === uid) || { uid: uid, name: "Ex miembro" };
@@ -897,7 +909,7 @@
     const checkRules = () => { if (E.rulesOutdated() && !warnedRules.current) { warnedRules.current = true; toast("Enviado sin los datos nuevos: quien administra la app debe pegar las reglas nuevas de Firestore.", { ms: 8000 }); } };
     const send = async (other, payload) => {
       try { const r = await E.sendMessage(profile, other.uid, payload); pushResult(r.pushed, other.name.split(" ")[0]); checkRules(); }
-      catch (e) { toast("No se envió: " + (e.code === "permission-denied" ? "esa persona ya no está en tu equipo." : e.message)); throw e; }
+      catch (e) { toast("No se envió: " + (e.code === "permission-denied" ? "esa persona ya no está en tu equipo." : E.errorText(e))); throw e; }
     };
     const react = (m, r) => E.react(m.id, r).then(() => { if (r) toast(r === "sirvio" ? "Listo: " + nameOf(m.from).split(" ")[0] + " verá que te sirvió." : "Cuéntale qué error te salió."); }, (e) => { toast(e.message); throw e; });
     const pickScript = (cb, title) => push({ type: "pickScript", title: title, cb: cb });
@@ -932,7 +944,7 @@
         else { await E.saveScript(s); await E.publish(profile, s); toast("Publicado: todo el equipo lo ve en Scripts → Del equipo."); }
       } catch (e) { toast("No se pudo: " + e.message); }
     };
-    const confirm = (title, text, cta, fn) => push({ type: "confirm", title: title, text: text, cta: cta, fn: fn });
+    const confirm = (title, text, cta, fn, more) => push(Object.assign({ type: "confirm", title: title, text: text, cta: cta, fn: fn }, more || {}));
     const importFiles = async (files) => {
       let ok = 0, bad = [];
       for (const f of files.slice(0, 20)) {
@@ -1005,7 +1017,7 @@
           onSend=${async (d) => { try { done(); await o.cb(d); } catch (e) { /* el error ya se mostró */ } }} />`;
         case "share": return html`<${ShareSheet} key=${o.key} script=${o.script} onClose=${done} toast=${toast} onSendTeam=${() => { done(); sendTo(o.script); }} />`;
         case "confirm": return html`<${Sheet} key=${o.key} title=${o.title} onClose=${done}><p className="text-sm text-mute">${o.text}</p>
-          <div className="flex gap-2 justify-end"><${Btn} onClick=${done}>Cancelar<//><${Btn} kind="danger" onClick=${async () => { done(); try { await o.fn(); } catch (e) { toast(e.message); } }}>${o.cta}<//></div><//>`;
+          <div className="flex gap-2 justify-end"><${Btn} onClick=${done}>${o.cancel || "Cancelar"}<//><${Btn} kind=${o.kind || "danger"} onClick=${async () => { done(); try { await o.fn(); } catch (e) { toast(e.message); } }}>${o.cta}<//></div><//>`;
         default: return null;
       }
     };

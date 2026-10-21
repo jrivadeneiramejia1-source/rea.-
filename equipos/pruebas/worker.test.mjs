@@ -30,7 +30,7 @@ const enc$ = (v) => v === null ? { nullValue: null } : typeof v === "boolean" ? 
   : typeof v === "string" ? { stringValue: v } : Array.isArray(v) ? { arrayValue: { values: v.map(enc$) } } : { mapValue: { fields: Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc$(x)])) } };
 const fields = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, enc$(v)]));
 
-function fakeGoogle(docs, { fcmDead = [], indexes = new Set(), forbidIndexes = false } = {}) {
+function fakeGoogle(docs, { fcmDead = [], fcmOtherProject = [], indexes = new Set(), forbidIndexes = false } = {}) {
   const log = { pushes: [], patches: [], tokenCalls: 0, indexCalls: 0 };
   const root = `projects/${PROJECT}/databases/(default)/documents`;
   const fetch = async (url, init = {}) => {
@@ -51,6 +51,7 @@ function fakeGoogle(docs, { fcmDead = [], indexes = new Set(), forbidIndexes = f
     if (u.host === "fcm.googleapis.com") {
       const msg = JSON.parse(init.body).message;
       if (fcmDead.includes(msg.token)) return new Response(JSON.stringify({ error: { status: "NOT_FOUND", details: [{ errorCode: "UNREGISTERED" }] } }), { status: 404 });
+      if (fcmOtherProject.includes(msg.token)) return new Response(JSON.stringify({ error: { status: "PERMISSION_DENIED", details: [{ errorCode: "SENDER_ID_MISMATCH" }] } }), { status: 403 });
       log.pushes.push(msg);
       return ok({ name: "projects/x/messages/1" });
     }
@@ -154,6 +155,12 @@ await check("script enviado: avisa al destinatario y limpia el dispositivo muert
   assert.equal(p.webpush.fcm_options.link, `${ORIGIN}/?chat=jeiler`);
   assert.deepEqual(docs["devices/amigo"].tokens.map((t) => t.token), ["tok-amigo-cel"]);
   assert.equal(docs["messages/m1"].notified, true);
+});
+await check("un token de otro proyecto de Firebase también se quita", async () => {
+  const docs = seed();
+  const r = await call(docs, { body: { messageId: "m1" }, opts: { fcmOtherProject: ["tok-amigo-viejo"] } });
+  assert.equal(r.status, 200); assert.equal(r.data.sent, 1);
+  assert.deepEqual(docs["devices/amigo"].tokens.map((t) => t.token), ["tok-amigo-cel"]);
 });
 await check("no repite el aviso del mismo mensaje", async () => {
   const docs = seed(); await call(docs, { body: { messageId: "m1" } });

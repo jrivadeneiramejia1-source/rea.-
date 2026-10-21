@@ -182,7 +182,8 @@ async function sendToUsers(env, access, db, uids, note) {
       if (res.ok) { sent++; return; }
       const err = await res.json().catch(() => ({}));
       const code = err?.error?.details?.find?.((d) => d.errorCode)?.errorCode || err?.error?.status;
-      if (res.status === 404 || code === "UNREGISTERED" || code === "INVALID_ARGUMENT") dead.push(t.token);
+      // Token vencido, de otra instalación o de otro proyecto de Firebase: no volverá a servir.
+      if (res.status === 404 || ["UNREGISTERED", "INVALID_ARGUMENT", "SENDER_ID_MISMATCH", "NOT_FOUND"].includes(code)) dead.push(t.token);
     }));
     if (dead.length) {
       await db.patch(`devices/${uid}`, { tokens: tokens.filter((t) => !dead.includes(t.token)) }).catch(() => {});
