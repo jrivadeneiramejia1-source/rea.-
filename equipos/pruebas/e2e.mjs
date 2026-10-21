@@ -256,35 +256,13 @@ try {
   await ponerReglas(reglas);
   step("si aún no se pegan las reglas nuevas, el «para qué» va dentro del texto y se avisa");
 
-  console.log("Asesor IA conectado al equipo");
-  await B.goto(APP + "/asesor/");
-  await B.getByRole("button", { name: "Enviar a un compañero" }).waitFor({ timeout: 20000 });
-  await B.getByRole("button", { name: "Enviar a un compañero" }).click();
-  await B.getByText("¿A quién le envías el prompt?").waitFor();
-  await B.locator("button", { hasText: "Jeiler" }).last().click();
-  await A.getByText("✨ Amigo Técnico te envió un prompt").waitFor(); // Jeiler está en Scripts: le sale el aviso flotante
-  await A.screenshot({ path: new URL("6-prompt-recibido.png", SHOTS).pathname });
-  const p3 = await waitFor(() => pushes.find((p) => p.webpush.notification.title.startsWith("✨")), "push del prompt");
-  assert.equal(p3.token, "tok-jeiler");
-  step("el Asesor IA envía el prompt a un compañero con notificación");
-  await B.getByText("← Equipo").waitFor();
-  step("el Asesor muestra «← Equipo» para volver al Lanzador");
-  await B.getByRole("button", { name: /^Perfil/ }).first().click();
-  const campos = () => B.locator("#p-nombre, #p-rol, #p-sistema, #p-herramientas, #p-metas, #p-rutas, #p-noQuiero").count();
-  await B.locator("#p-nivel").selectOption("basico");
-  assert.equal(await campos(), 2, "básico: 2 campos");
-  await B.locator("#p-nivel").selectOption("intermedio");
-  assert.equal(await campos(), 5, "intermedio: 5 campos");
-  await B.locator("#p-nivel").selectOption("avanzado");
-  assert.equal(await campos(), 7, "avanzado: 7 campos");
-  await B.screenshot({ path: new URL("9-asesor-avanzado.png", SHOTS).pathname });
-  await B.locator("#p-nivel").selectOption("basico");
-  await B.screenshot({ path: new URL("10-asesor-basico.png", SHOTS).pathname });
-  step("Asesor: básico pide 2 datos, intermedio 5 y avanzado 7");
+  console.log("El Lanzador va sin el Asesor IA (son apps aparte)");
   await A.goto(APP);
-  await A.getByRole("link", { name: "Abrir el Asesor IA" }).click();
-  await A.waitForURL(/\/asesor\//);
-  step("el Lanzador abre el Asesor IA desde arriba");
+  await A.getByRole("button", { name: /^Equipo/ }).first().waitFor();
+  assert.equal(await A.getByRole("link", { name: "Abrir el Asesor IA" }).count(), 0, "sin enlace al Asesor");
+  assert.equal(await A.evaluate(() => [...document.scripts].some((x) => /asesor/i.test(x.src))), false);
+  step("el Lanzador ya no trae el Asesor IA ni enlaces a él");
+
 
   console.log("Limpieza automática (plan gratis de Firebase)");
   const dias = (n) => new Date(Date.now() - n * 864e5).toISOString();

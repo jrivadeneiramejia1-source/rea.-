@@ -476,11 +476,10 @@
             ? html`<p className="text-xs text-good flex items-center gap-1"><${Icon} name="Check" size=${14} />Ya respondiste</p>`
             : html`<${Btn} kind="primary" className="text-xs py-1" onClick=${() => actions.pickScript((s) => send({ kind: "script", text: "Para tu pedido: «" + m.text.slice(0, 80) + "»", script: s, requestId: m.id, replyTo: toReply(m) }))}><${Icon} name="Send" size=${14} />Enviar un script<//>`)}`;
       } else if (m.kind === "prompt" && m.prompt) {
-        body = html`<p className="flex items-center gap-1 text-xs font-medium text-info"><${Icon} name="Sparkles" size=${14} />Prompt del Asesor IA</p>
+        body = html`<p className="flex items-center gap-1 text-xs font-medium text-info"><${Icon} name="Sparkles" size=${14} />Prompt</p>
           <p className="font-medium">${m.prompt.title || "Prompt"}</p>
           <p className="text-xs text-mute line-clamp-4 whitespace-pre-wrap">${m.prompt.text}</p>
-          <div className="flex gap-2"><${Btn} className="text-xs py-1" onClick=${() => actions.copy(m.prompt.text)}><${Icon} name="Copy" size=${14} />Copiar<//>
-          <${Btn} className="text-xs py-1" onClick=${() => actions.openInAdvisor(m.prompt)}><${Icon} name="Wand2" size=${14} />Abrir en el Asesor<//></div>`;
+          <div className="flex gap-2"><${Btn} className="text-xs py-1" onClick=${() => actions.copy(m.prompt.text)}><${Icon} name="Copy" size=${14} />Copiar<//></div>`;
       } else body = html`<p className="whitespace-pre-wrap break-words">${m.text}</p>`;
       const quote = m.replyTo && html`<button type="button" onClick=${() => jumpTo(m.replyTo.id)} className="block w-full max-w-full overflow-hidden text-left rounded-lg border-l-2 border-acc bg-canvas/70 px-2 py-1 text-xs">
         <span className="block font-medium text-acc">${quoteName(m.replyTo)}</span><span className="block text-mute truncate">${m.replyTo.name || m.replyTo.text}</span></button>`;
@@ -966,14 +965,13 @@
         else if (data.text && data.text.trim()) push({ type: "script", script: Object.assign(G.newScript("ps5"), { name: "Recibido", code: data.text }), editable: true });
       } catch (e) { toast("No se pudo leer lo compartido."); }
     }
-    const openInAdvisor = (p) => { try { localStorage.setItem("equipos.promptEntrante", JSON.stringify({ title: p.title, text: p.text, at: Date.now() })); } catch (e) { /* sin almacenamiento */ } location.href = "/asesor/?desde=equipos"; };
     const unpublish = (c) => confirm("¿Quitar «" + c.script.name + "» del equipo?", "Deja de verse en «Del equipo». El script sigue en tu biblioteca.", "Quitar", async () => { await E.unpublish(c.script.id); toast("Quitado del equipo."); });
     const publishFromLibrary = () => pickScript(async (s) => {
       if (publishedIds.has(s.id)) { toast("«" + s.name + "» ya está publicado."); return; }
       try { await E.publish(profile, s); toast("Publicado: el equipo lo ve en «Del equipo»."); } catch (e) { toast("No se pudo publicar: " + e.message); }
     }, "¿Qué script publicas al equipo?");
     const copy = async (t) => toast((await copyText(t)) ? "Copiado." : "No se pudo copiar.");
-    const actions = { send, react, pickScript, ask, confirm, toast, saveCopy, unpublish, publishFromLibrary, openChat, copy, openInAdvisor, newRequest, answerRequest, askPerson, newScript, importFiles };
+    const actions = { send, react, pickScript, ask, confirm, toast, saveCopy, unpublish, publishFromLibrary, openChat, copy, newRequest, answerRequest, askPerson, newScript, importFiles };
 
     // ----- Datos derivados -----
     const convos = useMemo(() => {
@@ -1026,7 +1024,6 @@
         <div className="max-w-3xl mx-auto flex items-center gap-3 px-3 py-2">
           <img src="/icono-192.png" alt="" className="w-8 h-8 rounded-lg" />
           <div className="min-w-0 flex-1"><p className="font-semibold truncate leading-tight">${team ? team.name : "Lanzador"}</p><p className="text-xs text-mute truncate">${netOk ? members.filter((m) => E.presence(m, now).online).length + " conectado(s)" : "Sin internet · se enviará al reconectar"}</p></div>
-          <a href="/asesor/" className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-mute hover:text-ink hover:bg-panel" aria-label="Abrir el Asesor IA"><${Icon} name="Sparkles" size=${16} className="text-acc" /><span className="hidden sm:inline">Asesor IA</span></a>
           <button type="button" onClick=${() => push({ type: "profile" })} className="flex items-center gap-2 rounded-full pl-2 pr-1 py-1 hover:bg-panel" aria-label="Mi perfil">
             <span className="text-right hidden sm:block"><span className="block text-sm leading-tight">${profile.name}</span><span className="block text-xs text-mute leading-tight">${E.STATUSES[profile.status]}</span></span>
             <${Avatar} person=${meMember} status=${{ key: profile.status, label: E.STATUSES[profile.status] }} size=${36} />

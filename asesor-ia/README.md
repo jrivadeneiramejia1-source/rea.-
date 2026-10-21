@@ -11,7 +11,27 @@ Te dice, antes de enviar un pedido a Claude, ChatGPT, Gemini o DeepSeek:
 
 Todo corre en tu dispositivo. No usa API ni gasta tokens.
 
-**Con tu equipo:** publicado junto a [Lanzador · Equipos](../equipos/README.md) queda en `/asesor/` con el botón «Enviar a un compañero» (le llega una notificación) y abre los prompts que te envían por el chat. Dentro de claude.ai ese botón no aparece.
+Es una app aparte del Lanzador · Equipos: no comparte sesión, datos ni dirección con él.
+
+## Publicarla como app propia (Cloudflare Pages, gratis)
+
+`web/build.mjs` arma la app desde `artifact/asesor-ia.html` (la misma versión de claude.ai) en `web/dist`: página, manifiesto para instalarla y service worker para que abra sin internet después de la primera vez.
+
+```powershell
+Set-Location "$HOME\rea\asesor-ia\web"
+node build.mjs
+npx wrangler pages deploy dist --project-name asesor-ia
+```
+
+- La primera vez Wrangler pide entrar a Cloudflare (la misma cuenta del Worker de avisos) y crea el proyecto. Te da la dirección, por ejemplo `https://asesor-ia.pages.dev`. Si el nombre ya está tomado, usa otro en `--project-name`.
+- Para actualizar: los mismos dos últimos comandos.
+- En el celular: abre la dirección en Chrome → menú ⋮ → **Instalar app** (Install app). En iPhone: Compartir (Share) → **Agregar a inicio** (Add to Home Screen).
+- Ahí el dictado por voz sí funciona (en claude.ai el micrófono está bloqueado).
+- Prueba: `node web/prueba.mjs` (carga, instalable, sin internet y sin nada del Lanzador).
+
+## Versión 3.2 (octubre de 2026)
+
+- **Separada del Lanzador:** se quitó el botón «Enviar a un compañero» y la entrada de prompts desde el chat del Lanzador. Ahora se publica sola (arriba).
 
 ## Versión 3.1 (octubre de 2026)
 
@@ -34,7 +54,7 @@ Todo corre en tu dispositivo. No usa API ni gasta tokens.
 - Voz: dictado continuo con texto parcial en vivo, modo conversación y lectura en voz alta. Dentro de claude.ai el micrófono está bloqueado para los artifacts; la lectura en voz alta sí funciona.
 - Exportar `.md` y `.json` (en claude.ai usa la capacidad `downloads`).
 
-La app web (`index.html`) y la extensión (`extension/`) siguen en la versión 2.
+La app web vieja (`index.html` en esta carpeta) y la extensión (`extension/`) siguen en la versión 2; la app web que se publica es la de `web/`.
 
 ## Partes
 

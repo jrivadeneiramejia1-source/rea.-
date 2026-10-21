@@ -1,5 +1,5 @@
 module.exports = {
-  content: ["./public/index.html", "./public/lanzador.js", "./public/asesor-puente.js"],
+  content: ["./public/index.html", "./public/lanzador.js"],
   theme: { extend: {
     colors: { canvas: "#0a0f0d", panel: "#111a16", raised: "#17231d", line: "#263730",
       ink: "#e2ebe6", mute: "#8fa39a", faint: "#5d706a",

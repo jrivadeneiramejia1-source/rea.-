@@ -1,13 +1,13 @@
 # Lanzador · Equipos
 
-El Lanzador de Scripts convertido en app de equipo, al estilo Microsoft Teams: cada persona inicia sesión con su cuenta, ve quién está conectado, chatea, pide scripts y los recibe con **notificación al celular o al PC**, aunque la app esté cerrada. Incluye el **Asesor IA** en `/asesor/`, conectado al mismo equipo.
+El Lanzador de Scripts convertido en app de equipo, al estilo Microsoft Teams: cada persona inicia sesión con su cuenta, ve quién está conectado, chatea, pide scripts y los recibe con **notificación al celular o al PC**, aunque la app esté cerrada. El **Asesor IA** es una app aparte: [`../asesor-ia`](../asesor-ia/README.md).
 
 ## Qué hace
 
 - **Inicio de sesión explícito:** Google o correo y contraseña (con «¿Olvidaste tu contraseña?»). Arriba siempre se ve quién está conectado y con qué cuenta. Cerrar sesión quita los avisos de ese dispositivo.
 - **Equipos:** creas un equipo y obtienes un código (`XXXX-XXXX-XXXX`) o un enlace/QR de invitación. Solo las personas del mismo equipo se ven y se escriben (las reglas de Firestore lo exigen en el servidor, no solo en la pantalla).
 - **Presencia:** Disponible, Ocupado, Ausente o «Desconectado · hace 2 h». Cada app abierta avisa cada 2 minutos que sigue ahí.
-- **Chat 1 a 1:** texto, scripts (Ver, Guardar en mis scripts, Compartir), pedidos y prompts del Asesor. Marca «Enviado» / «Visto». Separado por días, como WhatsApp.
+- **Chat 1 a 1:** texto, scripts (Ver, Guardar en mis scripts, Compartir), pedidos (y los prompts que llegaron antes de separar el Asesor, que se pueden copiar). Marca «Enviado» / «Visto». Separado por días, como WhatsApp.
 - **Chat interactivo:** toca un mensaje (o ⋮) para **Responder citándolo**, Copiar o Borrar; tocar la cita lleva al mensaje original. En un script recibido: **¿Cómo lo uso?** abre una guía que se arma sola con el código (qué hace, si necesita administrador o PowerShell 7, si hace preguntas, y los pasos con los comandos para copiar) y desde ahí **le preguntas a quien te lo mandó** en el mismo chat, citando el script. **Me sirvió / No me funcionó**: quien lo envió lo ve en su mensaje; si no funcionó, se abre la respuesta para contar el error.
 - **Pedidos:** «Pedir script» a una persona o a todo el equipo diciendo **qué necesitas y para qué** (obligatorio), en qué sistema (Windows 11, 10, Server, Linux) y el tema. Quien lo tenga toca «Tengo uno: enviar» y tú lo adaptas a tu equipo (la ruta la pones tú).
 - **Notificaciones:**
@@ -107,6 +107,8 @@ Solo la app, sin notificaciones push: `pwsh -File .\instalar.ps1 -ProyectoId lan
 
 ### Actualizar después de cambios
 
+**Versión sin el Asesor IA adentro:** al publicar, `/asesor/` deja de existir en este sitio (el `build` borra la copia vieja). El Asesor se publica aparte (ver `../asesor-ia/README.md`). Las reglas no cambian.
+
 **Versión con avisos al día y limpieza automática:** las reglas no cambian. Hay que publicar la app y el Worker (los 3 comandos de abajo); el Worker ahora también quita los tokens de otro proyecto.
 
 **Versión con «para qué», citas y «Me sirvió»:** hay que volver a pegar las reglas (`3-reglas-firestore.txt` del zip) en Firestore → Reglas → Publicar. Mientras no se peguen, la app sigue funcionando: el «para qué» y el sistema viajan dentro del texto, la cita no se guarda y «Me sirvió» avisa que faltan las reglas. El Worker no cambia.
@@ -137,14 +139,13 @@ En iPhone las notificaciones solo funcionan con la app agregada a inicio (iOS 16
 | `public/lanzador.js` | Interfaz (React 18 + htm, sin compilación) |
 | `public/equipos.js` | Capa de datos: sesión, equipo, presencia, chat, pedidos, biblioteca, avisos |
 | `public/sw.js` | Service worker: push, recibir archivos compartidos, modo sin internet |
-| `public/asesor-puente.js` | Conecta el Asesor IA con el equipo (enviar prompts, ver mensajes nuevos) |
 | `firestore.rules` | Reglas de seguridad (quién puede leer y escribir qué) |
 | `worker/src/index.js` | Worker de Cloudflare que envía los avisos |
-| `build.mjs` | Copia librerías a `public/vendor`, toma el motor de `../gestor-scripts/lanzador.html`, prepara `/asesor/` y compila Tailwind |
+| `build.mjs` | Copia librerías a `public/vendor`, toma el motor de `../gestor-scripts/lanzador.html` y compila Tailwind |
 | `instalar.ps1` | Instalador guiado (PowerShell) |
 | `empaquetar.mjs` | Arma `lanzador-equipos.zip` para publicar desde el navegador |
 
-`public/motor.js`, `public/vendor/`, `public/asesor/`, `public/lanzador.css` y `public/config.js` los genera `npm run build` o el instalador (no se suben a GitHub). La plantilla es `public/config.ejemplo.js`.
+`public/motor.js`, `public/vendor/`, `public/lanzador.css` y `public/config.js` los genera `npm run build` o el instalador (no se suben a GitHub). La plantilla es `public/config.ejemplo.js`.
 
 ## Pruebas
 
@@ -155,7 +156,7 @@ npm run test:reglas      # 73 casos de reglas contra el emulador de Firestore (r
 PLAYWRIGHT_MODULE=… npx firebase emulators:exec --only auth,firestore,hosting --project demo-equipos "node pruebas/e2e.mjs"
 ```
 
-La prueba de extremo a extremo usa dos navegadores (Jeiler y Amigo): cuentas, equipo por invitación, presencia, pedido al equipo con «para qué» y aviso push, respuesta con script, guardar, guía «¿Cómo lo uso?», pregunta citando el script, «Me sirvió», responder citando, «Visto», chat sin duplicados y sin salirse de la pantalla, reglas anteriores sin perder datos, menú Compartir y envío de un prompt desde el Asesor IA (29 comprobaciones). El servidor FCM es simulado en esa prueba.
+La prueba de extremo a extremo usa dos navegadores (Jeiler y Amigo): cuentas, equipo por invitación, presencia, pedido al equipo con «para qué» y aviso push, respuesta con script, guardar, guía «¿Cómo lo uso?», pregunta citando el script, «Me sirvió», responder citando, «Visto», chat sin duplicados y sin salirse de la pantalla, reglas anteriores sin perder datos, menú Compartir, limpieza automática, token de avisos al día, ofrecer avisos en un teléfono nuevo y que el Lanzador ya no trae el Asesor (32 comprobaciones). El servidor FCM es simulado en esa prueba.
 
 ## Límites
 
