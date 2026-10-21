@@ -86,6 +86,27 @@ Usa el archivo `lanzador-equipos.zip` (se arma con `npm run build && node empaqu
 
 Para actualizar la app después: Pages → tu proyecto → **Create deployment (Nueva implementación)** → arrastra otra vez `1-sitio` (con tu `config.js`).
 
+## Publicar con un agente (Claude) o con un comando
+
+`node publicar.mjs` arma y publica en Cloudflare, sin tocar variables ni secretos: el sitio del Lanzador (sin Asesor), el código del Worker de avisos y el Asesor IA. `node publicar.mjs --simular` revisa todo sin publicar nada; también se puede pedir solo una parte: `lanzador`, `worker` o `asesor`.
+
+Necesita estas variables en el entorno (el token es secreto: nunca en el chat ni en un archivo):
+
+| Variable | Qué es |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Token con permiso de edición de *Cloudflare Pages* y *Workers Scripts*, solo de tu cuenta |
+| `CLOUDFLARE_ACCOUNT_ID` | ID de tu cuenta de Cloudflare |
+| `PAGES_LANZADOR` | Proyecto de Pages del Lanzador (debe existir; por defecto `lanzador-jeiler`) |
+| `PAGES_ASESOR` | Proyecto de Pages del Asesor (se crea si no existe; por defecto `asesor-ia`) |
+| `WORKER_NOMBRE` | Worker de avisos (por defecto `lanzado-notificaciones`) |
+| `LANZADOR_CONFIG_B64` | Tu `config.js` en base64 (o el archivo `public/config.js`). Se revisa que no esté en blanco |
+
+En PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("RUTA\config.js")) | Set-Clipboard`.
+
+Detalles que cuidan lo que ya tienes: el Worker se sube con `--keep-vars` y sin `[vars]`, así que `FIREBASE_PROJECT_ID`, `APP_URL`, `ALLOWED_ORIGINS` y la llave secreta quedan como están; el sitio del Lanzador solo se publica en un proyecto de Pages que ya exista. Las reglas de Firestore no las toca (se pegan a mano en Firebase).
+
+Probado en simulación (armado, revisión del `config.js`, mensajes de error). **No se probó una publicación real** contra Cloudflare.
+
 ## Instalar (Windows, PowerShell 7)
 
 Necesitas Node.js 20 o más nuevo (`winget install OpenJS.NodeJS.LTS`), una cuenta de Google y una de Cloudflare.
